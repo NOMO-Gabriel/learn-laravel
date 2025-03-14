@@ -10,7 +10,7 @@ Ce projet couvrira les notions suivantes :
 - Création et manipulation des **modèles et migrations**
 - Utilisation de **Eloquent ORM** pour gérer les relations entre entités
 - Authentification avec **Laravel Breeze** et **JWT**
-- Gestion des **rôles et permissions** (admin vs utilisateur)
+- Gestion des **rôles et permissions** (admin vs utilisateur) avec **Laravel permission**
 - Création d’une **API RESTful** et tests avec **Postman**
 - Sécurisation de l’API avec **JWT**
 - Création d’interfaces avec **Blade**
@@ -72,7 +72,6 @@ Si vous êtes arrivé jusqu’ici, bravo ! 🎉 Vous avez maintenant une solide 
 - Apprenez les tests de l'application avec **PHPUnit**.
 - Expérimentez avec **Laravel Livewire** pour du développement réactif.
 - Explorez **Laravel Queues & Jobs** pour gérer les tâches en arrière-plan.
-- Implémentez **une gestion avancée des rôles** avec **Laravel Permission**.
 - Ajoutez un **système de notifications** (email, Slack, etc.).
 - Réalisez un projet de grande envergure pour maîtriser un maximum de concepts et vous amuser.
 
