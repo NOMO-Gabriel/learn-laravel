@@ -17,7 +17,11 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
 
 ## 💻 2. Installation des outils en fonction de l'OS
 
-### 🏁 Windows
+- [Installation Windows](#-installation-windows)
+- [Installation Linux](#-installation-linux-ubuntudebian)
+- [Installation macOS](#-installation-macos)
+
+### 🏁 Installation Windows
 
 1. **Installer PHP**  
    Téléchargez et installez **[XAMPP](https://www.apachefriends.org/fr/download.html)** ou **[PHP](https://windows.php.net/download/)**.  
@@ -59,7 +63,7 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
 
 ---
 
-### 🐧 Linux (Ubuntu/Debian)
+### 🐧 Installation Linux (Ubuntu/Debian)
 
 1. **Mettre à jour le système**
    ```sh
@@ -126,7 +130,7 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
 
 ---
 
-### 🍏 macOS
+### 🍏 Installation macOS
 
 1. **Installer Homebrew (si pas encore installé)**
    ```sh
