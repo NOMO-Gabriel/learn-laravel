@@ -40,23 +40,44 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
    - Avec **XAMPP** : Activez MySQL dans le panneau de contrôle.  
    - Sinon, installez **MySQL** depuis **[ce lien](https://dev.mysql.com/downloads/installer/)**.
 
-5. **Installer Node.js et npm**  
+5. **Installer SQLite**  
+   SQLite est généralement inclus avec PHP. Vérifiez avec :
+   ```sh
+   php -m | grep sqlite
+   ```
+   Si SQLite n’est pas activé, éditez le fichier `php.ini` et décommentez ces lignes (retirez `;` devant) :
+   ```ini
+   extension=pdo_sqlite
+   extension=sqlite3
+   ```
+   sinon installer sqltie:
+      ```bash
+      sudo apt install php-sqlite3
+      ```
+
+   ou avec mac:
+   ```bash
+   brew install php
+   ```
+
+6. **Installer Node.js et npm**  
    Téléchargez et installez **[Node.js](https://nodejs.org/)**.
 
-6. **Installer Postman ou Insomnia**  
+7. **Installer Postman ou Insomnia**  
    - **[Postman](https://www.postman.com/downloads/)**
    - **[Insomnia](https://insomnia.rest/download/)**
 
-7. **Installer un éditeur de code**  
+8. **Installer un éditeur de code**  
    - **[VS Code](https://code.visualstudio.com/) (recommandé)**
    - **[PHPStorm](https://www.jetbrains.com/phpstorm/)**
    - **[Sublime Text](https://www.sublimetext.com/)**
 
-8. **Vérifier les installations**  
+9. **Vérifier les installations**  
    ```sh
    php -v        # Vérifie la version de PHP
    composer -V   # Vérifie Composer
    mysql --version  # Vérifie MySQL
+   sqlite3 --version  # Vérifie SQLite
    node -v       # Vérifie Node.js
    npm -v        # Vérifie npm
    ```
@@ -72,7 +93,7 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
 
 2. **Installer PHP, Composer et extensions**
    ```sh
-   sudo apt install php-cli php-mbstring php-xml unzip curl -y
+   sudo apt install php-cli php-mbstring php-xml unzip curl php-sqlite3 -y
    curl -sS https://getcomposer.org/installer | php
    sudo mv composer.phar /usr/local/bin/composer
    ```
@@ -82,20 +103,25 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
    composer global require laravel/installer
    ```
 
-4. **Installer MySQL**
+4. **Installer SQLite**
+   ```sh
+   sudo apt install sqlite3
+   ```
+
+5. **Installer MySQL**
    ```sh
    sudo apt install mysql-server -y
    sudo systemctl start mysql
    sudo systemctl enable mysql
    ```
 
-5. **Installer Node.js et npm**
+6. **Installer Node.js et npm**
    ```sh
    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
    sudo apt install -y nodejs
    ```
 
-6. **Installer Postman ou Insomnia**
+7. **Installer Postman ou Insomnia**
    - **Postman**  
      ```sh
      sudo snap install postman
@@ -105,25 +131,12 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
      sudo snap install insomnia
      ```
 
-7. **Installer un éditeur de code**
-   - **VS Code**  
-     ```sh
-     sudo snap install code --classic
-     ```
-   - **PHPStorm**  
-     ```sh
-     sudo snap install phpstorm --classic
-     ```
-   - **Sublime Text**  
-     ```sh
-     sudo snap install sublime-text --classic
-     ```
-
 8. **Vérifier les installations**
    ```sh
    php -v
    composer -V
    mysql --version
+   sqlite3 --version
    node -v
    npm -v
    ```
@@ -148,46 +161,23 @@ Avant de commencer le projet, assurez-vous d’avoir les outils suivants install
    composer global require laravel/installer
    ```
 
-4. **Installer MySQL**
+4. **Installer SQLite**
+   ```sh
+   brew install sqlite
+   ```
+
+5. **Installer MySQL**
    ```sh
    brew install mysql
    brew services start mysql
    ```
 
-5. **Installer Node.js et npm**
-   ```sh
-   brew install node
-   ```
-
-6. **Installer Postman ou Insomnia**
-   - **Postman**  
-     ```sh
-     brew install --cask postman
-     ```
-   - **Insomnia**  
-     ```sh
-     brew install --cask insomnia
-     ```
-
-7. **Installer un éditeur de code**
-   - **VS Code**  
-     ```sh
-     brew install --cask visual-studio-code
-     ```
-   - **PHPStorm**  
-     ```sh
-     brew install --cask phpstorm
-     ```
-   - **Sublime Text**  
-     ```sh
-     brew install --cask sublime-text
-     ```
-
-8. **Vérifier les installations**
+6. **Vérifier les installations**
    ```sh
    php -v
    composer -V
    mysql --version
+   sqlite3 --version
    node -v
    npm -v
    ```
@@ -205,4 +195,3 @@ Utilisez un navigateur moderne pour tester votre application :
 
 ## 🚀 Prochaine étape
 Une fois ces outils installés, passez à l'étape suivante : **[Création et configuration du projet](02-creation-configuration.md)**.
-```
