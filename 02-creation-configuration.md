@@ -115,7 +115,7 @@ Lorsque vous créez un projet Laravel, vous obtenez une structure de fichiers et
 
 ## 📌 Code source de cette étape
 
-Le code source correspondant à cette étape est disponible sur la branche `step-2`.
+Le code source correspondant à cette étape est disponible sur la branche `step-1`.
 
 ---
 
