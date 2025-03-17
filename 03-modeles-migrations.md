@@ -43,17 +43,13 @@ User::create(['name' => 'John Doe', 'email' => 'john@example.com']);
 ### 📌 Qu'est-ce qu'une migration ?
 Une **migration** est un fichier qui permet de créer, modifier ou supprimer des tables en base de données via des commandes Laravel.
 
-**Avantages des migrations :**
-- Permet de versionner la base de données
-- Facilite la collaboration sur le projet
-- Rend l'ajout/modification de tables plus organisé
-
 **Exemple d'une migration :**
 ```php
 Schema::create('users', function (Blueprint $table) {
     $table->id();
     $table->string('name');
     $table->string('email')->unique();
+    $table->string('password');
     $table->timestamps();
 });
 ```
@@ -71,89 +67,101 @@ php artisan make:model Income -m
 php artisan make:model Category -m
 ```
 
-Cela crée :  
-- Un modèle dans `app/Models/`  
-- Une migration correspondante dans `database/migrations/`  
+---
+
+## 📂 Migrations
+
+Ouvrez les fichiers de migration dans `database/migrations/` et complétez-les comme suit :
+
+### 🔹 Migration `create_users_table.php`
+```php
+Schema::create('users', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->string('email')->unique();
+    $table->string('password');
+    $table->rememberToken();
+    $table->timestamps();
+});
+```
+
+### 🔹 Migration `create_expenses_table.php`
+```php
+Schema::create('expenses', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->onDelete('cascade');
+    $table->foreignId('category_id')->constrained()->onDelete('cascade');
+    $table->decimal('amount', 10, 2);
+    $table->text('description')->nullable();
+    $table->date('date');
+    $table->timestamps();
+});
+```
+
+### 🔹 Migration `create_incomes_table.php`
+```php
+Schema::create('incomes', function (Blueprint $table) {
+    $table->id();
+    $table->foreignId('user_id')->constrained()->onDelete('cascade');
+    $table->foreignId('category_id')->constrained()->onDelete('cascade');
+    $table->decimal('amount', 10, 2);
+    $table->text('description')->nullable();
+    $table->date('date');
+    $table->timestamps();
+});
+```
+
+### 🔹 Migration `create_categories_table.php`
+```php
+Schema::create('categories', function (Blueprint $table) {
+    $table->id();
+    $table->string('name');
+    $table->timestamps();
+});
+```
 
 ---
 
-## 🔗 Définition des relations entre modèles  
+## 🔗 Modèles avec `fillable`
 
-### 🔹 Modèle `User.php`  
+### 🔹 Modèle `User.php`
 ```php
 class User extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
-    public function expenses()
-    {
-        return $this->hasMany(Expense::class);
-    }
-
-    public function incomes()
-    {
-        return $this->hasMany(Income::class);
-    }
+    protected $fillable = ['name', 'email', 'password'];
+    protected $hidden = ['password', 'remember_token'];
 }
 ```
 
-### 🔹 Modèle `Expense.php`  
+### 🔹 Modèle `Expense.php`
 ```php
 class Expense extends Model
 {
     use HasFactory;
 
     protected $fillable = ['amount', 'description', 'category_id', 'user_id', 'date'];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
 }
 ```
 
-### 🔹 Modèle `Income.php`  
+### 🔹 Modèle `Income.php`
 ```php
 class Income extends Model
 {
     use HasFactory;
 
     protected $fillable = ['amount', 'description', 'category_id', 'user_id', 'date'];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
 }
 ```
 
-### 🔹 Modèle `Category.php`  
+### 🔹 Modèle `Category.php`
 ```php
 class Category extends Model
 {
     use HasFactory;
 
     protected $fillable = ['name'];
-
-    public function expenses()
-    {
-        return $this->hasMany(Expense::class);
-    }
-
-    public function incomes()
-    {
-        return $this->hasMany(Income::class);
-    }
 }
 ```
 
@@ -161,36 +169,19 @@ class Category extends Model
 
 ## 🚀 Exécution des migrations  
 
-Appliquez les migrations pour créer les tables en base de données :  
-
 ```sh
 php artisan migrate
 ```
-
-Si une erreur survient, vérifiez votre fichier `.env` et assurez-vous que la base de données est bien créée.
 
 ---
 
 ## 📜 Commandes utiles pour les modèles et migrations  
 
-### 📌 Création des modèles et migrations
 ```sh
 php artisan make:model NomDuModele -m   # Créer un modèle avec sa migration
-php artisan make:model NomDuModele      # Créer uniquement un modèle
-php artisan make:migration create_nom_table  # Créer une migration seule
-```
-
-### 📌 Exécuter les migrations
-```sh
 php artisan migrate        # Exécuter toutes les migrations
 php artisan migrate:rollback  # Annuler la dernière migration
-php artisan migrate:reset     # Annuler toutes les migrations
 php artisan migrate:refresh   # Réappliquer toutes les migrations
-```
-
-### 📌 Modifier une table existante
-```sh
-php artisan make:migration add_column_to_table --table=nom_table  # Ajouter une colonne
 ```
 
 ---
