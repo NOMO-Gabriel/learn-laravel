@@ -75,14 +75,7 @@ Ouvrez les fichiers de migration dans `database/migrations/` et complétez-les c
 
 ### 🔹 Migration `create_users_table.php`
 ```php
-Schema::create('users', function (Blueprint $table) {
-    $table->id();
-    $table->string('name');
-    $table->string('email')->unique();
-    $table->string('password');
-    $table->rememberToken();
-    $table->timestamps();
-});
+// on ne modifie rien
 ```
 
 ### 🔹 Migration `create_expenses_table.php`
@@ -126,17 +119,15 @@ Schema::create('categories', function (Blueprint $table) {
 
 ### 🔹 Modèle `User.php`
 ```php
-class User extends Authenticatable
-{
-    use HasFactory, Notifiable;
-
-    protected $fillable = ['name', 'email', 'password'];
-    protected $hidden = ['password', 'remember_token'];
-}
+// on ne modifie rien
 ```
 
 ### 🔹 Modèle `Expense.php`
 ```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 class Expense extends Model
 {
     use HasFactory;
@@ -147,6 +138,11 @@ class Expense extends Model
 
 ### 🔹 Modèle `Income.php`
 ```php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 class Income extends Model
 {
     use HasFactory;
@@ -157,6 +153,10 @@ class Income extends Model
 
 ### 🔹 Modèle `Category.php`
 ```php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 class Category extends Model
 {
     use HasFactory;
