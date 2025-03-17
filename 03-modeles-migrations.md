@@ -182,6 +182,7 @@ php artisan make:model NomDuModele -m   # Créer un modèle avec sa migration
 php artisan migrate        # Exécuter toutes les migrations
 php artisan migrate:rollback  # Annuler la dernière migration
 php artisan migrate:refresh   # Réappliquer toutes les migrations
+php artisan migrate:fresh # supprime toutes les tables et re-execute les migrations
 ```
 
 ---
