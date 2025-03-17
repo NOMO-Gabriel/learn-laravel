@@ -43,21 +43,21 @@ Le projet utilise quatre principales entités :
 - **Category** (nom de la catégorie, relation avec Expense)
 
 ## 📌 Plan du tutoriel
-1. [Requirements](01-requirements.md)
-2. [Création et configuration du projet](02-creation-configuration.md)
-3. [Création des modèles et migrations](03-modeles-migrations.md)
-4. [Remplissage de la base de données avec des fixtures](04-fixtures.md)
+0. [Requirements](01-requirements.md)
+1. [Création et configuration du projet](02-creation-configuration.md)
+2. [Création des modèles et migrations](03-modeles-migrations.md)
+3. [Remplissage de la base de données avec des fixtures](04-fixtures.md)
 
 ### **Partie 1 : Application Laravel + Blade**
-5. [Création des contrôleurs et routage (web.php)](05-controllers-web.md)
-6. [Création des interfaces (Dashboard, profil utilisateur, gestion des dépenses, bilans)](06-interfaces.md)
-7. [Tests des interfaces](07-tests-interfaces.md)
+4. [Création des contrôleurs et routage (web.php)](05-controllers-web.md)
+5. [Création des interfaces (Dashboard, profil utilisateur, gestion des dépenses, bilans)](06-interfaces.md)
+6. [Tests des interfaces](07-tests-interfaces.md)
 
 ### **Partie 2 : API**
-8. [Création des contrôleurs d’API](08-controllers-api.md)
-9. [Tests avec Postman](09-tests-api.md)
-10. [Sécurisation de l’API avec JWT](10-auth-jwt.md)
-11. [Tests finaux avec Postman](11-tests-final.md)
+7. [Création des contrôleurs d’API](08-controllers-api.md)
+8. [Tests avec Postman](09-tests-api.md)
+9. [Sécurisation de l’API avec JWT](10-auth-jwt.md)
+10. [Tests finaux avec Postman](11-tests-final.md)
 
 ---
 
