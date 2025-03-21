@@ -863,7 +863,7 @@ class CategoryFactory extends Factory
         ];
         
         return [
-            'name' => $this->faker->unique()->randomElement($categories),
+            'name' => $this->faker->randomElement($categories),
         ];
     }
     
@@ -878,7 +878,7 @@ class CategoryFactory extends Factory
         ];
         
         return $this->state(fn (array $attributes) => [
-            'name' => $this->faker->unique()->randomElement($expenseCategories),
+            'name' => $this->faker->randomElement($expenseCategories),
         ]);
     }
     
@@ -892,7 +892,7 @@ class CategoryFactory extends Factory
         ];
         
         return $this->state(fn (array $attributes) => [
-            'name' => $this->faker->unique()->randomElement($incomeCategories),
+            'name' => $this->faker->randomElement($incomeCategories),
         ]);
     }
 }
