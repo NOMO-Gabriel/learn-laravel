@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,     // Ensuite les catégories
             ExpenseSeeder::class,      // Puis les dépenses
             IncomeSeeder::class,       // Et enfin les revenus
+            RolesAndPermissionsSeeder::class,
         ]);
     }
 }
