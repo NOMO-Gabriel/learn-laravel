@@ -261,6 +261,7 @@ Modifiez les paramètres de base de données dans le fichier `.env` :
 DB_CONNECTION=sqlite
 DB_DATABASE=/chemin/absolu/vers/gestion-depenses/database/database.sqlite
 ```
+**moi j'ai choisi `DB_DATABASE=database/database.sqlite` **
 
 Pour obtenir le chemin absolu, vous pouvez utiliser :
 - Sur Linux/macOS : `pwd`
@@ -287,8 +288,8 @@ Cette commande affichera les informations sur votre connexion à la base de donn
 Par défaut, Laravel utilise UTC. Pour adapter l'application à votre région, modifiez le fichier `config/app.php` :
 
 ```php
-// Pour la France, utilisez 'Europe/Paris'
-'timezone' => 'Europe/Paris',
+// Pour le Cameroun, utilisez 'Africa/Douala',
+'timezone' => 'Africa/Douala',
 ```
 
 ### Configuration de la locale
