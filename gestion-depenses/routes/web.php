@@ -17,9 +17,19 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Route d'accueil accessible à tous
+// // Route d'accueil accessible à tous
+// Route::get('/', function () {
+//     return view('welcome');
+// })->name('home');
+
 Route::get('/', function () {
-    return view('welcome');
+    $user = (object) ['name' => 'Gabriel NOMO']; // Simule un utilisateur
+    $messages = collect([
+        (object) ['content' => 'Bienvenue sur notre site !'],
+        (object) ['content' => 'N’oubliez pas de vérifier vos notifications.']
+    ]); // Simule une liste de messages
+
+    return view('welcome', compact('user', 'messages'));
 })->name('home');
 
 // Les routes d'authentification générées par Breeze sont dans auth.php
