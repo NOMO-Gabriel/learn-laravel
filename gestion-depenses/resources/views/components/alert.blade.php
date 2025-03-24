@@ -1,14 +1,13 @@
 <!-- resources/views/components/alert.blade.php -->
-@php
-    $colors = [
-        'success' => 'bg-green-100 border-green-500 text-green-700',
-        'danger' => 'bg-red-100 border-red-500 text-red-700',
-        'warning' => 'bg-yellow-100 border-yellow-500 text-yellow-700',
-        'info' => 'bg-blue-100 border-blue-500 text-blue-700',
-        'default' => 'bg-gray-100 border-gray-500 text-gray-700' 
-    ];
+@props(['type' => 'info', 'title' => null])
 
-    $alertClass = $colors[$type] ?? $colors['default'];
+@php
+    $classes = match($type) {
+        'success' => 'bg-green-100 border-green-400 text-green-700',
+        'error' => 'bg-red-100 border-red-400 text-red-700',
+        'warning' => 'bg-yellow-100 border-yellow-400 text-yellow-700',
+        default => 'bg-blue-100 border-blue-400 text-blue-700',
+    };
 @endphp
 
 <div 
@@ -16,7 +15,7 @@
     x-init="setTimeout(() => show = false, 5000)" 
     x-show="show" 
     x-transition.duration.500ms
-    {{ $attributes->merge(['class' => "relative border-l-4 p-4 rounded-md $alertClass shadow-md"]) }}
+    {{ $attributes->merge(['class' => "border px-4 py-3 rounded relative $classes shadow-md"]) }} 
     role="alert"
 >
     <!-- Bouton de fermeture -->
@@ -27,9 +26,10 @@
         &times;
     </button>
 
-    @if(isset($title))
-        <h4 class="font-bold">{{ $title }}</h4>
+    @if($title)
+        <strong class="font-bold">{{ $title }}</strong>
+        <span class="block sm:inline">{{ $slot }}</span>
+    @else
+        {{ $slot }}
     @endif
-    
-    <p>{{ $slot }}</p>
 </div>

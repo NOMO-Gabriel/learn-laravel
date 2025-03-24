@@ -1,3 +1,23 @@
+/* resources/css/app.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Styles personnalisés */
+@layer components {
+    .btn {
+      @apply font-bold py-2 px-4 rounded;
+    }
+    .btn-primary {
+      @apply bg-primary-500 text-white hover:bg-primary-700;
+    }
+    .btn-secondary {
+      @apply bg-gray-500 text-white hover:bg-gray-700;
+    }
+    .btn-success {
+      @apply bg-green-500 text-white hover:bg-green-700;
+    }
+    .btn-danger {
+      @apply bg-red-500 text-white hover:bg-red-700;
+    }
+  }
