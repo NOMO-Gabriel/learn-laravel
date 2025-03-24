@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Category;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,7 +30,7 @@ class ExpenseController extends Controller
         $query = Expense::with(['category', 'user']);
         
         // Si pas admin, ne montrer que les dépenses de l'utilisateur connecté
-        if (!Auth::hasRole('admin')) {
+        if (!$user->hasRole('admin')) {
             $query->where('user_id', $user->id);
         }
         
@@ -96,8 +97,11 @@ class ExpenseController extends Controller
      */
     public function show(Expense $expense)
     {
+         // Récupérer l'utilisateur connecté
+         $user = Auth::user();
+        
         // Vérifier que l'utilisateur peut voir cette dépense
-        if (!Auth::hasRole('admin') && $expense->user_id !== Auth::id()) {
+        if (!$user->hasRole('admin') && $expense->user_id !== Auth::id()) {
             return redirect()->route('expenses.index')
                             ->with('error', 'Vous n\'êtes pas autorisé à accéder à cette dépense.');
         }
