@@ -1709,8 +1709,147 @@ Les pages pour les revenus sont similaires à celles des dépenses avec quelques
 @endsection
 ```
 
-Les vues `create.blade.php`, `edit.blade.php` et `show.blade.php` pour les revenus sont similaires à celles des dépenses, avec des adaptations pour les libellés et les couleurs (vert au lieu de rouge pour les montants).
+#### `create.blade.php`
+```bash
+<!-- resources/views/incomes/create.blade.php -->
+@extends('layouts.app')
 
+@section('title', 'Nouveau revenu')
+
+@section('header', 'Ajouter un revenu')
+
+@section('content')
+    <form action="{{ route('incomes.store') }}" method="POST">
+        @csrf
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <x-form.input name="description" label="Description" required />
+            
+            <x-form.input name="amount" label="Montant" type="number" step="0.01" required />
+            
+            <x-form.select name="category_id" label="Catégorie" :options="$categories->pluck('name', 'id')->toArray()" required />
+            
+            <x-form.input name="date" label="Date" type="date" value="{{ date('Y-m-d') }}" required />
+        </div>
+        
+        <div class="mt-6 flex justify-between">
+            <x-button type="submit" color="success">
+                <i class="fas fa-save mr-1"></i> Enregistrer
+            </x-button>
+            
+            <x-button type="button" color="gray" onclick="window.location='{{ route('incomes.index') }}'">
+                <i class="fas fa-times mr-1"></i> Annuler
+            </x-button>
+        </div>
+    </form>
+@endsection
+```
+#### `edit.blade.php` 
+```bash
+<!-- resources/views/incomes/edit.blade.php -->
+@extends('layouts.app')
+
+@section('title', 'Modifier le revenu')
+
+@section('header', 'Modifier le revenu')
+
+@section('content')
+    <form action="{{ route('incomes.update', $income) }}" method="POST">
+        @csrf
+        @method('PUT')
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <x-form.input name="description" label="Description" :value="$income->description" required />
+            
+            <x-form.input name="amount" label="Montant" type="number" step="0.01" :value="$income->amount" required />
+            
+            <x-form.select name="category_id" label="Catégorie" :options="$categories->pluck('name', 'id')->toArray()" :value="$income->category_id" required />
+            
+            <x-form.input name="date" label="Date" type="date" :value="$income->date->format('Y-m-d')" required />
+        </div>
+        
+        <div class="mt-6 flex justify-between">
+            <x-button type="submit" color="success">
+                <i class="fas fa-save mr-1"></i> Mettre à jour
+            </x-button>
+            
+            <x-button type="button" color="gray" onclick="window.location='{{ route('incomes.index') }}'">
+                <i class="fas fa-times mr-1"></i> Annuler
+            </x-button>
+        </div>
+    </form>
+@endsection
+```
+#### `show.blade.php` 
+```bash
+<!-- resources/views/incomes/show.blade.php -->
+@extends('layouts.app')
+
+@section('title', 'Détails du revenu')
+
+@section('header', 'Détails du revenu')
+
+@section('content')
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="border-b px-6 py-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800">{{ $income->description }}</h2>
+                <span class="text-green-600 font-bold text-xl">{{ number_format($income->amount, 2, ',', ' ') }} €</span>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Date</h3>
+                    <p class="mt-1 text-lg text-gray-900">{{ $income->date->format('d/m/Y') }}</p>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Catégorie</h3>
+                    <p class="mt-1">
+                        <span class="px-2 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            {{ $income->category->name }}
+                        </span>
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Utilisateur</h3>
+                    <p class="mt-1 text-lg text-gray-900">{{ $income->user->name }}</p>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500">Créé le</h3>
+                    <p class="mt-1 text-lg text-gray-900">{{ $income->created_at->format('d/m/Y H:i') }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 px-6 py-4">
+            <div class="flex justify-between">
+                <a href="{{ route('incomes.edit', $income) }}" class="btn btn-primary">
+                    <i class="fas fa-edit mr-1"></i> Modifier
+                </a>
+                
+                <form action="{{ route('incomes.destroy', $income) }}" method="POST" class="inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce revenu ?')">
+                        <i class="fas fa-trash mr-1"></i> Supprimer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ route('incomes.index') }}" class="text-primary-600 hover:text-primary-800">
+            <i class="fas fa-arrow-left mr-1"></i> Retour à la liste
+        </a>
+    </div>
+@endsection
+```
 ## 🏷️ Pages de gestion des catégories
 
 Créons les vues pour gérer les catégories.
@@ -2069,8 +2208,309 @@ Créons les vues pour la gestion des utilisateurs, accessibles uniquement aux ad
 @endsection
 ```
 
-Les autres vues pour les utilisateurs (`create.blade.php`, `edit.blade.php` et `show.blade.php`) suivent une structure similaire aux précédentes, adaptées aux champs spécifiques des utilisateurs.
+#### `create.blade.php`
+```bash
+<!-- resources/views/users/create.blade.php -->
+@extends('layouts.app')
 
+@section('title', 'Nouvel utilisateur')
+
+@section('header', 'Ajouter un utilisateur')
+
+@section('content')
+    <form action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <x-form.input name="name" label="Nom complet" required />
+            
+            <x-form.input name="email" label="Adresse email" type="email" required />
+            
+            <x-form.input name="password" label="Mot de passe" type="password" required />
+            
+            <x-form.input name="password_confirmation" label="Confirmer le mot de passe" type="password" required />
+            
+            <div class="md:col-span-2">
+                <label for="role" class="block text-gray-700 text-sm font-bold mb-2">Rôle</label>
+                <div class="mt-2 space-y-2">
+                    @foreach($roles as $role)
+                        <div class="flex items-center">
+                            <input id="role_{{ $role->id }}" name="role" type="radio" value="{{ $role->name }}" class="h-4 w-4 text-primary-600 focus:ring-primary-500">
+                            <label for="role_{{ $role->id }}" class="ml-2 block text-sm text-gray-900">
+                                {{ ucfirst($role->name) }}
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                @error('role')
+                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+            
+            <div class="md:col-span-2">
+                <label for="profile_image" class="block text-gray-700 text-sm font-bold mb-2">Photo de profil</label>
+                <input type="file" name="profile_image" id="profile_image" accept="image/*" class="mt-1 block w-full">
+                @error('profile_image')
+                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-between">
+            <x-button type="submit" color="success">
+                <i class="fas fa-save mr-1"></i> Enregistrer
+            </x-button>
+            
+            <x-button type="button" color="gray" onclick="window.location='{{ route('users.index') }}'">
+                <i class="fas fa-times mr-1"></i> Annuler
+            </x-button>
+        </div>
+    </form>
+@endsection
+```
+#### `edit.blade.php` 
+```bash
+<!-- resources/views/users/edit.blade.php -->
+@extends('layouts.app')
+
+@section('title', 'Modifier l\'utilisateur')
+
+@section('header', 'Modifier l\'utilisateur')
+
+@section('content')
+    <form action="{{ route('users.update', $user) }}" method="POST" enctype="multipart/form-data">
+        @csrf
+        @method('PUT')
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <x-form.input name="name" label="Nom complet" :value="$user->name" required />
+            
+            <x-form.input name="email" label="Adresse email" type="email" :value="$user->email" required />
+            
+            <div class="md:col-span-2">
+                <p class="text-sm text-gray-600 mb-4">Laissez les champs de mot de passe vides si vous ne souhaitez pas le modifier.</p>
+            </div>
+            
+            <x-form.input name="password" label="Nouveau mot de passe" type="password" />
+            
+            <x-form.input name="password_confirmation" label="Confirmer le mot de passe" type="password" />
+            
+            <div class="md:col-span-2">
+                <label for="role" class="block text-gray-700 text-sm font-bold mb-2">Rôle</label>
+                <div class="mt-2 space-y-2">
+                    @foreach($roles as $role)
+                        <div class="flex items-center">
+                            <input id="role_{{ $role->id }}" name="role" type="radio" value="{{ $role->name }}" class="h-4 w-4 text-primary-600 focus:ring-primary-500"
+                                {{ $user->hasRole($role->name) ? 'checked' : '' }}>
+                            <label for="role_{{ $role->id }}" class="ml-2 block text-sm text-gray-900">
+                                {{ ucfirst($role->name) }}
+                            </label>
+                        </div>
+                    @endforeach
+                </div>
+                @error('role')
+                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+            
+            <div class="md:col-span-2">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Photo de profil actuelle</label>
+                @if($user->profile_image)
+                    <div class="mt-2 flex items-center">
+                        <img src="{{ $user->profile_image_url }}" alt="{{ $user->name }}" class="h-20 w-20 rounded-full object-cover">
+                        <span class="ml-4 text-sm text-gray-500">Téléchargez une nouvelle image pour remplacer l'actuelle</span>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-500">Aucune image de profil</p>
+                @endif
+            </div>
+            
+            <div class="md:col-span-2">
+                <label for="profile_image" class="block text-gray-700 text-sm font-bold mb-2">Nouvelle photo de profil</label>
+                <input type="file" name="profile_image" id="profile_image" accept="image/*" class="mt-1 block w-full">
+                @error('profile_image')
+                    <p class="text-red-500 text-xs italic mt-1">{{ $message }}</p>
+                @enderror
+            </div>
+        </div>
+        
+        <div class="mt-6 flex justify-between">
+            <x-button type="submit" color="success">
+                <i class="fas fa-save mr-1"></i> Mettre à jour
+            </x-button>
+            
+            <x-button type="button" color="gray" onclick="window.location='{{ route('users.index') }}'">
+                <i class="fas fa-times mr-1"></i> Annuler
+            </x-button>
+        </div>
+    </form>
+@endsection
+```
+#### `show.blade.php`
+```bash
+<!-- resources/views/users/show.blade.php -->
+@extends('layouts.app')
+
+@section('title', 'Détails de l\'utilisateur')
+
+@section('header', 'Détails de l\'utilisateur')
+
+@section('content')
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="md:flex">
+            <div class="md:w-1/3 bg-gray-50 p-8 border-r">
+                <div class="text-center">
+                    <img src="{{ $user->profile_image_url }}" alt="{{ $user->name }}" class="h-32 w-32 rounded-full mx-auto object-cover">
+                    <h2 class="mt-4 text-xl font-bold text-gray-900">{{ $user->name }}</h2>
+                    <p class="text-gray-500">{{ $user->email }}</p>
+                    
+                    <div class="mt-4">
+                        @foreach($user->roles as $role)
+                            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $role->name === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
+                                {{ ucfirst($role->name) }}
+                            </span>
+                        @endforeach
+                    </div>
+                    
+                    <div class="mt-2">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                            {{ $user->is_active ? 'Actif' : 'Bloqué' }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mt-8 border-t pt-4">
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="font-medium text-gray-500">Inscrit le</span>
+                        <span class="text-gray-900">{{ $user->created_at->format('d/m/Y') }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="font-medium text-gray-500">Dernière connexion</span>
+                        <span class="text-gray-900">{{ $user->updated_at->format('d/m/Y H:i') }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="md:w-2/3 p-8">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Statistiques de l'utilisateur</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    <div class="bg-white rounded-lg border p-4">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-red-100 text-red-600">
+                                <i class="fas fa-arrow-down text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total des dépenses</p>
+                                <p class="text-xl font-bold text-gray-900">{{ number_format($user->expenses->sum('amount'), 2, ',', ' ') }} €</p>
+                                <p class="text-sm text-gray-500">{{ $user->expenses->count() }} dépenses</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg border p-4">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-arrow-up text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total des revenus</p>
+                                <p class="text-xl font-bold text-gray-900">{{ number_format($user->incomes->sum('amount'), 2, ',', ' ') }} €</p>
+                                <p class="text-sm text-gray-500">{{ $user->incomes->count() }} revenus</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Activité récente</h3>
+                
+                <div class="border rounded-lg divide-y">
+                    @if($user->expenses->count() > 0 || $user->incomes->count() > 0)
+                        @php
+                            $activities = collect()
+                                ->merge($user->expenses->map(function($expense) {
+                                    return [
+                                        'type' => 'expense',
+                                        'data' => $expense,
+                                        'date' => $expense->created_at
+                                    ];
+                                }))
+                                ->merge($user->incomes->map(function($income) {
+                                    return [
+                                        'type' => 'income',
+                                        'data' => $income,
+                                        'date' => $income->created_at
+                                    ];
+                                }))
+                                ->sortByDesc('date')
+                                ->take(10);
+                        @endphp
+                        
+                        @foreach($activities as $activity)
+                            <div class="p-4 flex justify-between items-center">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ $activity['data']->description }}</p>
+                                    <div class="flex items-center mt-1">
+                                        <span class="text-xs text-gray-500 mr-2">{{ $activity['data']->date->format('d/m/Y') }}</span>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $activity['type'] === 'expense' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }}">
+                                            {{ $activity['type'] === 'expense' ? 'Dépense' : 'Revenu' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span class="{{ $activity['type'] === 'expense' ? 'text-red-600' : 'text-green-600' }} font-bold">
+                                        {{ $activity['type'] === 'expense' ? '-' : '+' }}{{ number_format($activity['data']->amount, 2, ',', ' ') }} €
+                                    </span>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="p-4 text-center text-gray-500">
+                            Aucune activité pour cet utilisateur
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 px-6 py-4 border-t">
+            <div class="flex justify-between">
+                <div>
+                    <a href="{{ route('users.edit', $user) }}" class="btn btn-primary">
+                        <i class="fas fa-edit mr-1"></i> Modifier
+                    </a>
+                    
+                    <form action="{{ route('users.toggleActive', $user) }}" method="POST" class="inline-block ml-2">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" class="btn {{ $user->is_active ? 'btn-danger' : 'btn-success' }}" onclick="return confirm('Êtes-vous sûr de vouloir {{ $user->is_active ? 'bloquer' : 'débloquer' }} cet utilisateur ?')">
+                            <i class="fas {{ $user->is_active ? 'fa-lock' : 'fa-unlock' }} mr-1"></i> 
+                            {{ $user->is_active ? 'Bloquer' : 'Débloquer' }}
+                        </button>
+                    </form>
+                </div>
+                
+                @if($user->id !== auth()->id())
+                    <form action="{{ route('users.destroy', $user) }}" method="POST">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible et supprimera toutes ses données.')">
+                            <i class="fas fa-trash mr-1"></i> Supprimer
+                        </button>
+                    </form>
+                @endif
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ route('users.index') }}" class="text-primary-600 hover:text-primary-800">
+            <i class="fas fa-arrow-left mr-1"></i> Retour à la liste
+        </a>
+    </div>
+@endsection
+```
 ## 👤 Page de profil utilisateur
 
 Créons la page de profil utilisateur qui permet à chaque utilisateur de gérer ses informations.
@@ -2228,6 +2668,173 @@ Créons la page de profil utilisateur qui permet à chaque utilisateur de gérer
             </form>
         </div>
     </div>
+@endsection
+```
+### formulaires d'inscription
+```bash
+<!-- resources/views/auth/register.blade.php -->
+@extends('layouts.guest')
+
+@section('title', 'Inscription')
+@section('subtitle', 'Créez votre compte')
+
+@section('content')
+    <form method="POST" action="{{ route('register') }}">
+        @csrf
+
+        <div class="mb-4">
+            <label for="name" class="block text-sm font-medium text-gray-700">Nom</label>
+            <input id="name" type="text" name="name" value="{{ old('name') }}" required autofocus 
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 @error('name') border-red-500 @enderror">
+            @error('name')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="mb-4">
+            <label for="email" class="block text-sm font-medium text-gray-700">Adresse email</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required 
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 @error('email') border-red-500 @enderror">
+            @error('email')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="mb-4">
+            <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <input id="password" type="password" name="password" required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 @error('password') border-red-500 @enderror">
+            @error('password')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="mb-4">
+            <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirmation du mot de passe</label>
+            <input id="password_confirmation" type="password" name="password_confirmation" required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50">
+        </div>
+
+        <div class="flex items-center justify-between mt-6">
+            <a href="{{ route('login') }}" class="text-primary-600 hover:text-primary-500 text-sm">
+                Déjà inscrit ?
+            </a>
+            
+            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                S'inscrire
+            </button>
+        </div>
+    </form>
+@endsection
+```
+### formulaire de connection
+```bash
+<!-- resources/views/auth/login.blade.php -->
+@extends('layouts.guest')
+
+@section('title', 'Connexion')
+@section('subtitle', 'Connectez-vous à votre compte')
+
+@section('content')
+    @if (session('status'))
+        <div class="mb-4 font-medium text-sm text-green-600">
+            {{ session('status') }}
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('login') }}">
+        @csrf
+
+        <div class="mb-4">
+            <label for="email" class="block text-sm font-medium text-gray-700">Adresse email</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus 
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 @error('email') border-red-500 @enderror">
+            @error('email')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="mb-4">
+            <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+            <input id="password" type="password" name="password" required
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 @error('password') border-red-500 @enderror">
+            @error('password')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="mb-4 flex items-center">
+            <input id="remember_me" type="checkbox" name="remember" 
+                   class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
+            <label for="remember_me" class="ml-2 block text-sm text-gray-700">Se souvenir de moi</label>
+        </div>
+
+        <div class="flex items-center justify-between mt-6">
+            <div class="text-sm">
+                @if (Route::has('password.request'))
+                    <a href="{{ route('password.request') }}" class="text-primary-600 hover:text-primary-500">
+                        Mot de passe oublié ?
+                    </a>
+                @endif
+            </div>
+            
+            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                Se connecter
+            </button>
+        </div>
+        
+        <div class="text-center mt-6">
+            <p class="text-sm text-gray-600">
+                Vous n'avez pas de compte ?
+                <a href="{{ route('register') }}" class="text-primary-600 hover:text-primary-500">
+                    Inscrivez-vous
+                </a>
+            </p>
+        </div>
+    </form>
+@endsection
+```
+### formulaire pour mot de passe oublie
+```bash
+<!-- resources/views/auth/forgot-password.blade.php -->
+@extends('layouts.guest')
+
+@section('title', 'Réinitialisation du mot de passe')
+@section('subtitle', 'Récupérez l\'accès à votre compte')
+
+@section('content')
+    <div class="mb-4 text-sm text-gray-600">
+        Vous avez oublié votre mot de passe ? Pas de problème. Indiquez-nous votre adresse e-mail et nous vous enverrons un lien de réinitialisation qui vous permettra d'en choisir un nouveau.
+    </div>
+
+    @if (session('status'))
+        <div class="mb-4 font-medium text-sm text-green-600">
+            {{ session('status') }}
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('password.email') }}">
+        @csrf
+
+        <div class="mb-4">
+            <label for="email" class="block text-sm font-medium text-gray-700">Adresse email</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus 
+                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 @error('email') border-red-500 @enderror">
+            @error('email')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <div class="flex items-center justify-between mt-6">
+            <a href="{{ route('login') }}" class="text-primary-600 hover:text-primary-500 text-sm">
+                Retour à la connexion
+            </a>
+            
+            <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                Envoyer le lien
+            </button>
+        </div>
+    </form>
 @endsection
 ```
 
