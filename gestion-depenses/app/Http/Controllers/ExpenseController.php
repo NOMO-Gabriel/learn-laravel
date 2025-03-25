@@ -4,18 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Category;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ExpenseController extends Controller
 {
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-    }
+    use AuthorizesRequests;
 
     /**
      * Affiche la liste des dépenses
@@ -27,12 +22,9 @@ class ExpenseController extends Controller
         $user = Auth::user();
         
         // Démarrer la requête
-        $query = Expense::with(['category', 'user']);
+        $query = Expense::with(['category', 'user'])->where('user_id', $user->id);
         
-        // Si pas admin, ne montrer que les dépenses de l'utilisateur connecté
-        if (!$user->hasRole('admin')) {
-            $query->where('user_id', $user->id);
-        }
+        
         
         // Filtre par catégorie
         if ($request->has('category_id') && $request->category_id) {
@@ -63,7 +55,9 @@ class ExpenseController extends Controller
      */
     public function create()
     {
-        $categories = Category::all();
+        $this->authorize('create', Expense::class);
+        
+        $categories = Category::where('user_id', Auth::id())->get();
         return view('expenses.create', compact('categories'));
     }
 
@@ -73,6 +67,8 @@ class ExpenseController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Expense::class);
+        
         // Validation des données
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
@@ -97,14 +93,7 @@ class ExpenseController extends Controller
      */
     public function show(Expense $expense)
     {
-         // Récupérer l'utilisateur connecté
-         $user = Auth::user();
-        
-        // Vérifier que l'utilisateur peut voir cette dépense
-        if (!$user->hasRole('admin') && $expense->user_id !== Auth::id()) {
-            return redirect()->route('expenses.index')
-                            ->with('error', 'Vous n\'êtes pas autorisé à accéder à cette dépense.');
-        }
+        $this->authorize('view', $expense);
         
         $expense->load(['category', 'user']);
         return view('expenses.show', compact('expense'));
@@ -116,7 +105,9 @@ class ExpenseController extends Controller
      */
     public function edit(Expense $expense)
     {
-        $categories = Category::all();
+        $this->authorize('update', $expense);
+        
+        $categories = Category::where('user_id', Auth::id())->get();
         return view('expenses.edit', compact('expense', 'categories'));
     }
 
@@ -126,6 +117,8 @@ class ExpenseController extends Controller
      */
     public function update(Request $request, Expense $expense)
     {
+        $this->authorize('update', $expense);
+        
         // Validation des données
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
@@ -147,6 +140,8 @@ class ExpenseController extends Controller
      */
     public function destroy(Expense $expense)
     {
+        $this->authorize('delete', $expense);
+        
         $expense->delete();
         
         return redirect()->route('expenses.index')

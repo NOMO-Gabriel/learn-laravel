@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\User;
@@ -7,40 +8,41 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class UserController extends Controller
 {
-    /**
-     * Constructor
-     */
-    public function __construct()
-    {
-       
-    }
+    use AuthorizesRequests;
 
     /**
-     * Display a listing of the resource.
+     * Affiche la liste des utilisateurs
      */
     public function index()
     {
+        $this->authorize('viewAny', User::class);
+        
         $users = User::with('roles')->get();
         return view('users.index', compact('users'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Affiche le formulaire de création
      */
     public function create()
     {
+        $this->authorize('create', User::class);
+        
         $roles = Role::all();
         return view('users.create', compact('roles'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Enregistre un nouvel utilisateur
      */
     public function store(Request $request)
     {
+        $this->authorize('create', User::class);
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -72,72 +74,78 @@ class UserController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Affiche les détails d'un utilisateur
      */
     public function show(User $user)
     {
+        $this->authorize('view', $user);
+        
         return view('users.show', compact('user'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Affiche le formulaire de modification
      */
     public function edit(User $user)
     {
+        $this->authorize('update', $user);
+        
         $roles = Role::all();
         return view('users.edit', compact('user', 'roles'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Met à jour un utilisateur (pour les administrateurs)
      */
     public function update(Request $request, User $user)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
-            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        $user->name = $validated['name'];
-        $user->email = $validated['email'];
+        $this->authorize('update', $user);
         
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-        }
+        // Si c'est un administrateur, il peut uniquement modifier le rôle
+        if (Auth::user()->hasRole('admin') && Auth::id() !== $user->id) {
+            $validated = $request->validate([
+                'role' => 'required|exists:roles,name',
+            ]);
 
-        // Traiter l'image de profil si fournie
-        if ($request->hasFile('profile_image')) {
-            // Supprimer l'ancienne image
-            if ($user->profile_image) {
-                Storage::disk('public')->delete('profiles/' . $user->profile_image);
+            // Mise à jour du rôle uniquement
+            $user->syncRoles([$validated['role']]);
+            
+            return redirect()->route('users.index')
+                            ->with('success', 'Rôle de l\'utilisateur mis à jour avec succès');
+        } 
+        // Si c'est l'utilisateur lui-même, il peut modifier ses informations personnelles
+        else {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+                'password' => 'nullable|string|min:8|confirmed',
+            ]);
+            
+            $user->name = $validated['name'];
+            $user->email = $validated['email'];
+            
+            if (!empty($validated['password'])) {
+                $user->password = Hash::make($validated['password']);
             }
             
-            $imageName = time() . '_' . $user->id . '.' . $request->profile_image->extension();
-            $request->profile_image->storeAs('profiles', $imageName, 'public');
-            $user->profile_image = $imageName;
+            $user->save();
+            
+            return redirect()->route('profile.edit')
+                            ->with('success', 'Profil mis à jour avec succès');
         }
-
-        $user->save();
-
-        // Mettre à jour le rôle
-        $user->syncRoles([$validated['role']]);
-
-        return redirect()->route('users.index')
-                         ->with('success', 'Utilisateur mis à jour avec succès');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Supprime un utilisateur
      */
     public function destroy(User $user)
     {
+        $this->authorize('delete', $user);
+        
         // Empêcher la suppression de son propre compte
         if ($user->id === Auth::id()) {
             return redirect()->route('users.index')
-                             ->with('error', 'Vous ne pouvez pas supprimer votre propre compte');
+                            ->with('error', 'Vous ne pouvez pas supprimer votre propre compte');
         }
 
         // Supprimer l'image de profil
@@ -148,18 +156,20 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users.index')
-                         ->with('success', 'Utilisateur supprimé avec succès');
+                        ->with('success', 'Utilisateur supprimé avec succès');
     }
 
     /**
-     * Toggle user active status
+     * Bloque ou débloque un utilisateur
      */
     public function toggleActive(User $user)
     {
+        $this->authorize('toggleActive', $user);
+        
         // Empêcher de se bloquer soi-même
         if ($user->id === Auth::id()) {
             return redirect()->route('users.index')
-                             ->with('error', 'Vous ne pouvez pas bloquer votre propre compte');
+                            ->with('error', 'Vous ne pouvez pas bloquer votre propre compte');
         }
 
         $user->is_active = !$user->is_active;
@@ -168,6 +178,6 @@ class UserController extends Controller
         $status = $user->is_active ? 'activé' : 'bloqué';
         
         return redirect()->route('users.index')
-                         ->with('success', "L'utilisateur a été $status avec succès");
+                        ->with('success', "L'utilisateur a été $status avec succès");
     }
 }

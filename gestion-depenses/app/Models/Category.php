@@ -29,4 +29,12 @@ class Category extends Model
     {
         return $this->hasMany(Income::class);
     }
+
+    /**
+     * Get the user that owns the category.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

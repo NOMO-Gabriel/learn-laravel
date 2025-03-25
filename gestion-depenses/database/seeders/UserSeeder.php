@@ -27,10 +27,10 @@ class UserSeeder extends Seeder
         ]);
         
         // Créer des utilisateurs avec la factory
-        User::factory()->count(4)->create();
+        User::factory()->count(2)->create();
         
         // Créer des utilisateurs inactifs
-        User::factory()->inactive()->count(2)->create();
+        User::factory()->inactive()->count(1)->create();
     }
 }
 
