@@ -7,9 +7,11 @@
 
 @section('content')
     <div class="mb-6">
-        <a href="{{ route('users.create') }}" class="btn btn-primary">
-            <i class="fas fa-user-plus mr-1"></i> Nouvel utilisateur
-        </a>
+        @if(auth()->id() === 1 || !auth()->user()->hasRole('admin'))
+            <a href="{{ route('users.create') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus mr-1"></i> Nouvel utilisateur
+            </a>
+        @endif
     </div>
     
     <div class="overflow-x-auto bg-white rounded-lg shadow overflow-y-auto">
@@ -60,22 +62,31 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex justify-end space-x-2">
+                                {{-- Voir le profil - tous les admins peuvent voir les profils --}}
                                 <a href="{{ route('users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900" title="Voir">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900" title="Modifier">
-                                    <i class="fas fa-edit"></i>
-                                </a>
                                 
-                                <form action="{{ route('users.toggleActive', $user) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="{{ $user->is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $user->is_active ? 'Bloquer' : 'Débloquer' }}" onclick="return confirm('Êtes-vous sûr de vouloir {{ $user->is_active ? 'bloquer' : 'débloquer' }} cet utilisateur ?')">
-                                        <i class="fas {{ $user->is_active ? 'fa-lock' : 'fa-unlock' }}"></i>
-                                    </button>
-                                </form>
+                                {{-- Modifier - uniquement pour l'admin principal ou si l'utilisateur n'est pas un admin --}}
+                                @if(auth()->id() === 1 || (auth()->user()->hasRole('admin') && !$user->hasRole('admin') && $user->id !== 1))
+                                    <a href="{{ route('users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endif
                                 
-                                @if($user->id !== auth()->id())
+                                {{-- Bloquer/Débloquer - seulement pour l'admin principal ou pour les utilisateurs non-admin --}}
+                                @if((auth()->id() === 1 && $user->id !== 1) || (auth()->user()->hasRole('admin') && !$user->hasRole('admin') && $user->id !== 1))
+                                    <form action="{{ route('users.toggleActive', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="{{ $user->is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $user->is_active ? 'Bloquer' : 'Débloquer' }}" onclick="return confirm('Êtes-vous sûr de vouloir {{ $user->is_active ? 'bloquer' : 'débloquer' }} cet utilisateur ?')">
+                                            <i class="fas {{ $user->is_active ? 'fa-lock' : 'fa-unlock' }}"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                                
+                                {{-- Supprimer - uniquement pour l'admin principal et pas sur lui-même --}}
+                                @if(auth()->id() === 1 && $user->id !== auth()->id())
                                     <form action="{{ route('users.destroy', $user) }}" method="POST" class="inline">
                                         @csrf
                                         @method('DELETE')

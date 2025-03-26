@@ -12,7 +12,7 @@ class Category extends Model
     /**
      * The attributes that are mass assignable.
      */
-    protected $fillable = ['name'];
+    protected $fillable = ['name','user_id'];
 
     /**
      * Get the expenses for the category.

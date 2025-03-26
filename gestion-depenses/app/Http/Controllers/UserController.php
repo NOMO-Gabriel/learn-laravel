@@ -88,6 +88,12 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        // Vérification si un admin intermédiaire tente de modifier un admin principal ou un autre admin
+        if (Auth::id() !== 1 && Auth::user()->hasRole('admin') && ($user->id === 1 || $user->hasRole('admin'))) {
+            return redirect()->route('users.index')
+                           ->with('error', 'Vous ne pouvez pas modifier un administrateur ou l\'administrateur principal.');
+        }
+        
         $this->authorize('update', $user);
         
         $roles = Role::all();
@@ -99,6 +105,12 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Vérification si un admin intermédiaire tente de modifier un admin principal ou un autre admin
+        if (Auth::id() !== 1 && Auth::user()->hasRole('admin') && ($user->id === 1 || $user->hasRole('admin'))) {
+            return redirect()->route('users.index')
+                           ->with('error', 'Vous ne pouvez pas modifier un administrateur ou l\'administrateur principal.');
+        }
+        
         $this->authorize('update', $user);
         
         // Si c'est un administrateur, il peut uniquement modifier le rôle
@@ -140,6 +152,12 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        // Vérification que seul l'admin originel peut supprimer des utilisateurs
+        if (Auth::id() !== 1) {
+            return redirect()->route('users.index')
+                            ->with('error', 'Seul l\'administrateur principal peut supprimer des utilisateurs.');
+        }
+        
         $this->authorize('delete', $user);
         
         // Empêcher la suppression de son propre compte
@@ -164,6 +182,18 @@ class UserController extends Controller
      */
     public function toggleActive(User $user)
     {
+        // Vérification spéciale pour l'admin principal
+        if ($user->id === 1) {
+            return redirect()->route('users.index')
+                            ->with('error', 'Impossible de modifier le statut de l\'administrateur principal. Cette action est restreinte pour des raisons de sécurité.');
+        }
+        
+        // Vérification si un admin intermédiaire tente de bloquer un autre admin
+        if (Auth::id() !== 1 && Auth::user()->hasRole('admin') && $user->hasRole('admin')) {
+            return redirect()->route('users.index')
+                            ->with('error', 'Vous ne pouvez pas modifier le statut d\'un autre administrateur.');
+        }
+        
         $this->authorize('toggleActive', $user);
         
         // Empêcher de se bloquer soi-même

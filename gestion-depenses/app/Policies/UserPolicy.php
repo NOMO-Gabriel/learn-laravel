@@ -49,7 +49,7 @@ class UserPolicy
     public function delete(User $user, User $targetUser): bool
     {
         // Un admin peut supprimer n'importe quel compte sauf le sien
-        return $user->hasRole('admin') && $user->id !== $targetUser->id;
+        return $user->hasRole('admin') && $user->id !== $targetUser->id && $user->id == 1;
     }
 
     /**
@@ -57,7 +57,7 @@ class UserPolicy
      */
     public function toggleActive(User $user, User $targetUser): bool
     {
-        // Un admin peut bloquer/débloquer n'importe quel compte sauf le sien
-        return $user->hasRole('admin') && $user->id !== $targetUser->id;
+        // Un admin peut bloquer/débloquer n'importe quel compte sauf le sien et l'admin originel
+        return ($user->hasRole('admin') && $user->id !== $targetUser->id) && (!$targetUser->id ==1);
     }
 }

@@ -18,6 +18,7 @@ class ExpenseController extends Controller
      */
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Expense::class);
         // Récupérer l'utilisateur connecté
         $user = Auth::user();
         

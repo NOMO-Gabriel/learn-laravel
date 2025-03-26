@@ -6,17 +6,25 @@ use App\Models\Income;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class IncomeController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Affiche la liste des revenus
      * GET /incomes
      */
     public function index(Request $request)
     {
-        // Récupérer les revenus avec filtrage optionnel
-        $query = Income::with(['category', 'user']);
+        $this->authorize('viewAny', Income::class);
+        
+        // Récupérer l'utilisateur connecté
+        $user = Auth::user();
+        
+        // Démarrer la requête
+        $query = Income::with(['category', 'user'])->where('user_id', $user->id);
         
         // Filtre par catégorie
         if ($request->has('category_id') && $request->category_id) {
@@ -47,7 +55,9 @@ class IncomeController extends Controller
      */
     public function create()
     {
-        $categories = Category::all();
+        $this->authorize('create', Income::class);
+        
+        $categories = Category::where('user_id', Auth::id())->get();
         return view('incomes.create', compact('categories'));
     }
 
@@ -57,6 +67,8 @@ class IncomeController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorize('create', Income::class);
+        
         // Validation des données
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
@@ -66,7 +78,7 @@ class IncomeController extends Controller
         ]);
         
         // Ajouter l'ID de l'utilisateur connecté
-        $validated['user_id'] = Auth::id() ?? 1; // 1 comme valeur par défaut temporaire
+        $validated['user_id'] = Auth::id();
         
         // Création du revenu
         Income::create($validated);
@@ -81,6 +93,8 @@ class IncomeController extends Controller
      */
     public function show(Income $income)
     {
+        $this->authorize('view', $income);
+        
         $income->load(['category', 'user']);
         return view('incomes.show', compact('income'));
     }
@@ -91,7 +105,9 @@ class IncomeController extends Controller
      */
     public function edit(Income $income)
     {
-        $categories = Category::all();
+        $this->authorize('update', $income);
+        
+        $categories = Category::where('user_id', Auth::id())->get();
         return view('incomes.edit', compact('income', 'categories'));
     }
 
@@ -101,6 +117,8 @@ class IncomeController extends Controller
      */
     public function update(Request $request, Income $income)
     {
+        $this->authorize('update', $income);
+        
         // Validation des données
         $validated = $request->validate([
             'amount' => 'required|numeric|min:0',
@@ -122,6 +140,8 @@ class IncomeController extends Controller
      */
     public function destroy(Income $income)
     {
+        $this->authorize('delete', $income);
+        
         $income->delete();
         
         return redirect()->route('incomes.index')
