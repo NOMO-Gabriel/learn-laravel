@@ -965,6 +965,55 @@ Avec cette approche, un client peut demander des utilisateurs avec leurs rôles 
 
 # PARTIE 3: IMPLÉMENTATION
 
+Avant de commencer l'implémentation de notre API, créons tous les fichiers nécessaires. Cette étape préparatoire garantira une structure organisée et nous permettra de travailler efficacement.
+
+## 🚀 Création des fichiers nécessaires à l'implémentation de l'API
+
+```markdown
+# Création des répertoires
+mkdir -p app/DTOs
+mkdir -p app/Http/Controllers/Api/V1
+mkdir -p app/Http/Resources
+mkdir -p app/Http/Requests/Api
+
+# Création des DTOs
+touch app/DTOs/UserDTO.php
+touch app/DTOs/ExpenseDTO.php
+touch app/DTOs/IncomeDTO.php
+touch app/DTOs/CategoryDTO.php
+
+# Création des Resources
+touch app/Http/Resources/UserResource.php
+touch app/Http/Resources/ExpenseResource.php
+touch app/Http/Resources/IncomeResource.php
+touch app/Http/Resources/CategoryResource.php
+
+# Création des contrôleurs API
+touch app/Http/Controllers/Api/V1/UserApiController.php
+touch app/Http/Controllers/Api/V1/ExpenseApiController.php
+touch app/Http/Controllers/Api/V1/IncomeApiController.php
+touch app/Http/Controllers/Api/V1/CategoryApiController.php
+touch app/Http/Controllers/Api/V1/AuthApiController.php
+
+# Création des Form Requests pour l'API
+touch app/Http/Requests/Api/StoreUserRequest.php
+touch app/Http/Requests/Api/UpdateUserRequest.php
+touch app/Http/Requests/Api/StoreExpenseRequest.php
+touch app/Http/Requests/Api/UpdateExpenseRequest.php
+touch app/Http/Requests/Api/StoreIncomeRequest.php
+touch app/Http/Requests/Api/UpdateIncomeRequest.php
+touch app/Http/Requests/Api/StoreCategoryRequest.php
+touch app/Http/Requests/Api/UpdateCategoryRequest.php
+```
+
+Cette structure de fichiers suit les bonnes pratiques Laravel pour le développement d'API :
+- Les **DTOs** (Data Transfer Objects) serviront d'intermédiaires pour le transfert des données
+- Les **Resources** transformeront nos modèles en réponses JSON structurées
+- Les **Controllers API** gèreront la logique métier pour chaque entité
+- Les **Form Requests** valideront les données entrantes
+
+Nous pouvons maintenant procéder à l'implémentation de chaque composant.
+
 ## ⚙️ Configuration initiale de l'API
 
 Avant de commencer à implémenter nos API, nous devons configurer correctement l'environnement.
