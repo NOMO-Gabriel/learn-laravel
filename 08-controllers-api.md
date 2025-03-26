@@ -1185,7 +1185,37 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
 - `auth:sanctum` : Authentification avec Laravel Sanctum
 - `throttle:api` : Limitation de débit pour éviter les abus
 
+### 🔹 configuration de bootstrap/app.php
+incluez les routes vers l'api comme ceci:
 
+```php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        commands: __DIR__.'/../routes/console.php',
+        api: __DIR__.'/../routes/api.php',//ici
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware) {
+        // Ajout de notre middleware personnalisé
+        $middleware->alias([
+            'active.user' => \App\Http\Middleware\CheckUserIsActive::class,
+            'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+            'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+        ]);
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        // Configuration des exceptions (vide pour l'instant)
+    })
+    ->create();
+```
 
 ## 🛠️ Création des API Resources
 
@@ -3489,84 +3519,72 @@ Route::prefix('v1')->group(function () {
     });
 });
 ```
-
-## 📋 Form Requests pour la validation
-
-Pour maintenir un code propre et bien organisé, nous utilisons des Form Requests pour la validation des données. Voici quelques exemples de Form Requests pour notre application :
-
-### 🔹 StoreExpenseRequest
+Le fichier devient:
 
 ```php
 <?php
 
-namespace App\Http\Requests;
+use App\Http\Controllers\Api\V1\CategoryApiController;
+use App\Http\Controllers\Api\V1\ExpenseApiController;
+use App\Http\Controllers\Api\V1\IncomeApiController;
+use App\Http\Controllers\Api\V1\UserApiController;
+use App\Http\Controllers\Api\V1\ProfileApiController;
+use App\Http\Controllers\Api\V1\AuthApiController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
-use Illuminate\Foundation\Http\FormRequest;
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
 
-class StoreExpenseRequest extends FormRequest
-{
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true; // L'autorisation est gérée par les policies
-    }
+// Route pour obtenir l'utilisateur authentifié
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
-    public function rules(): array
-    {
-        return [
-            'amount' => 'required|numeric|min:0',
-            'description' => 'required|string|max:255',
-            'date' => 'required|date',
-            'category_id' => 'required|exists:categories,id',
-        ];
-    }
-}
+// Routes API v1
+Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
+    // Routes pour les utilisateurs
+    Route::apiResource('users', UserApiController::class);
+    Route::patch('users/{user}/toggle-active', [UserApiController::class, 'toggleActive'])->name('api.users.toggle-active');
+    
+    // Routes pour les dépenses
+    Route::apiResource('expenses', ExpenseApiController::class);
+    
+    // Routes pour les revenus
+    Route::apiResource('incomes', IncomeApiController::class);
+    
+    // Routes pour les catégories
+    Route::apiResource('categories', CategoryApiController::class);
+
+    // Routes pour le profil
+    Route::get('profile', [ProfileApiController::class, 'show'])->name('api.profile.show');
+    Route::put('profile', [ProfileApiController::class, 'update'])->name('api.profile.update');
+    Route::post('profile/image', [ProfileApiController::class, 'updateImage'])->name('api.profile.update-image');
+    Route::delete('profile', [ProfileApiController::class, 'destroy'])->name('api.profile.destroy');
+
+});
+
+// Routes d'authentification (sans middleware d'authentification)
+Route::prefix('v1')->group(function () {
+    Route::post('login', [AuthApiController::class, 'login'])->name('api.login');
+    Route::post('register', [AuthApiController::class, 'register'])->name('api.register');
+    
+    // Routes protégées par authentification
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('user', [AuthApiController::class, 'user'])->name('api.user');
+        Route::post('logout', [AuthApiController::class, 'logout'])->name('api.logout');
+        Route::post('logout-all', [AuthApiController::class, 'logoutAll'])->name('api.logout.all');
+    });
+});
 ```
-
-### 🔹 UpdateExpenseRequest
-
-```php
-<?php
-
-namespace App\Http\Requests;
-
-use Illuminate\Foundation\Http\FormRequest;
-
-class UpdateExpenseRequest extends FormRequest
-{
-    /**
-     * Determine if the user is authorized to make this request.
-     */
-    public function authorize(): bool
-    {
-        return true; // L'autorisation est gérée par les policies
-    }
-
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
-    public function rules(): array
-    {
-        return [
-            'amount' => 'required|numeric|min:0',
-            'description' => 'required|string|max:255',
-            'date' => 'required|date',
-            'category_id' => 'required|exists:categories,id',
-        ];
-    }
-}
-```
-
-Vous devrez créer des Form Requests similaires pour les autres modèles (Income, Category, User).
 
 ## 🧪 Exemples d'utilisation
 
