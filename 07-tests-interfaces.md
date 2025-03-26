@@ -314,6 +314,18 @@ class CategorySeeder extends Seeder
     }
 }
 ```
+### 🔹 Mise à jour du modele `Category`
+
+Maintenant, modifions le `fillable` dans le modele Category pour tenir compte de cette relation :
+
+remplacer par:
+
+```php
+ /**
+     * The attributes that are mass assignable.
+     */
+    protected $fillable = ['name','user_id'];
+```
 
 ### 🔹 Mise à jour du CategoryController
 
@@ -920,154 +932,61 @@ class ExpenseController extends Controller
 ```php
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
-use App\Models\Income;
-use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
-class IncomeController extends Controller
+class Income extends Model
 {
-    use AuthorizesRequests;
-    
+    use HasFactory;
+
     /**
-     * Affiche la liste des revenus
-     * GET /incomes
+     * The attributes that are mass assignable.
      */
-    public function index(Request $request)
+    protected $fillable = [
+        'user_id',
+        'category_id',
+        'amount',
+        'description',
+        'date',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     */
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'date' => 'date',
+    ];
+
+    /**
+     * Get the user that owns the income.
+     */
+    public function user()
     {
-        // Récupérer l'utilisateur connecté
-        $user = Auth::user();
-        
-        // Récupérer les revenus avec filtrage optionnel
-        $query = Income::with(['category', 'user'])->where('user_id', $user->id);
-        
-        
-        // Filtre par catégorie
-        if ($request->has('category_id') && $request->category_id) {
-            $query->where('category_id', $request->category_id);
-        }
-        
-        // Filtre par date
-        if ($request->has('date_start') && $request->date_start) {
-            $query->where('date', '>=', $request->date_start);
-        }
-        
-        if ($request->has('date_end') && $request->date_end) {
-            $query->where('date', '<=', $request->date_end);
-        }
-        
-        // Pagination des résultats
-        $incomes = $query->latest()->paginate(10);
-        
-        // Récupérer les catégories pour le filtre
-        $categories = Category::all();
-        
-        return view('incomes.index', compact('incomes', 'categories'));
+        return $this->belongsTo(User::class);
     }
 
     /**
-     * Affiche le formulaire de création
-     * GET /incomes/create
+     * Get the category of the income.
      */
-    public function create()
+    public function category()
     {
-        $this->authorize('create', Income::class);
-        
-        $categories = Category::all();
-        return view('incomes.create', compact('categories'));
+        return $this->belongsTo(Category::class);
     }
 
     /**
-     * Enregistre un nouveau revenu
-     * POST /incomes
+     * Get the formatted amount.
      */
-    public function store(Request $request)
+    protected function formattedAmount(): Attribute
     {
-        $this->authorize('create', Income::class);
-        
-        // Validation des données
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'description' => 'required|string|max:255',
-            'date' => 'required|date',
-            'category_id' => 'required|exists:categories,id',
-        ]);
-        
-        // Ajouter l'ID de l'utilisateur connecté
-        $validated['user_id'] = Auth::id();
-        
-        // Création du revenu
-        Income::create($validated);
-        
-        return redirect()->route('incomes.index')
-                         ->with('success', 'Revenu ajouté avec succès !');
+        return Attribute::make(
+            get: fn () => number_format($this->amount, 2) . ' €',
+        );
     }
-
-    /**
-     * Affiche un revenu spécifique
-     * GET /incomes/{income}
-     */
-    public function show(Income $income)
-    {
-        $this->authorize('view', $income);
-        
-        $income->load(['category', 'user']);
-        return view('incomes.show', compact('income'));
-    }
-
-    /**
-     * Affiche le formulaire de modification
-     * GET /incomes/{income}/edit
-     */
-    public function edit(Income $income)
-    {
-        $this->authorize('update', $income);
-        
-        $categories = Category::all();
-        return view('incomes.edit', compact('income', 'categories'));
-    }
-
-    /**
-     * Met à jour un revenu
-     * PUT /incomes/{income}
-     */
-    public function update(Request $request, Income $income)
-    {
-        $this->authorize('update', $income);
-        
-        // Validation des données
-        $validated = $request->validate([
-            'amount' => 'required|numeric|min:0',
-            'description' => 'required|string|max:255',
-            'date' => 'required|date',
-            'category_id' => 'required|exists:categories,id',
-        ]);
-        
-        // Mise à jour du revenu
-        $income->update($validated);
-        
-        return redirect()->route('incomes.index')
-                         ->with('success', 'Revenu mis à jour avec succès !');
-    }
-
-    /**
-     * Supprime un revenu
-     * DELETE /incomes/{income}
-     */
-    public function destroy(Income $income)
-    {
-        $this->authorize('delete', $income);
-        
-        $income->delete();
-        
-        return redirect()->route('incomes.index')
-                         ->with('success', 'Revenu supprimé avec succès !');
-    }
-}
-```
+}```
 
 #### CategoryController
 
@@ -1362,6 +1281,12 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        // Vérification si un admin intermédiaire tente de modifier un admin principal ou un autre admin
+        if (Auth::id() !== 1 && Auth::user()->hasRole('admin') && ($user->id === 1 || $user->hasRole('admin'))) {
+            return redirect()->route('users.index')
+                           ->with('error', 'Vous ne pouvez pas modifier un administrateur ou l\'administrateur principal.');
+        }
+        
         $this->authorize('update', $user);
         
         $roles = Role::all();
@@ -1373,6 +1298,12 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Vérification si un admin intermédiaire tente de modifier un admin principal ou un autre admin
+        if (Auth::id() !== 1 && Auth::user()->hasRole('admin') && ($user->id === 1 || $user->hasRole('admin'))) {
+            return redirect()->route('users.index')
+                           ->with('error', 'Vous ne pouvez pas modifier un administrateur ou l\'administrateur principal.');
+        }
+        
         $this->authorize('update', $user);
         
         // Si c'est un administrateur, il peut uniquement modifier le rôle
@@ -1414,6 +1345,12 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        // Vérification que seul l'admin originel peut supprimer des utilisateurs
+        if (Auth::id() !== 1) {
+            return redirect()->route('users.index')
+                            ->with('error', 'Seul l\'administrateur principal peut supprimer des utilisateurs.');
+        }
+        
         $this->authorize('delete', $user);
         
         // Empêcher la suppression de son propre compte
@@ -1438,6 +1375,18 @@ class UserController extends Controller
      */
     public function toggleActive(User $user)
     {
+        // Vérification spéciale pour l'admin principal
+        if ($user->id === 1) {
+            return redirect()->route('users.index')
+                            ->with('error', 'Impossible de modifier le statut de l\'administrateur principal. Cette action est restreinte pour des raisons de sécurité.');
+        }
+        
+        // Vérification si un admin intermédiaire tente de bloquer un autre admin
+        if (Auth::id() !== 1 && Auth::user()->hasRole('admin') && $user->hasRole('admin')) {
+            return redirect()->route('users.index')
+                            ->with('error', 'Vous ne pouvez pas modifier le statut d\'un autre administrateur.');
+        }
+        
         $this->authorize('toggleActive', $user);
         
         // Empêcher de se bloquer soi-même
@@ -1718,23 +1667,117 @@ Nous restructurons l'affichage pour placer la date d'inscription sous le nom et 
 #### Nouveau code :
 
 ```php
-<td class="px-6 py-4">
-    <div class="flex items-center">
-        <div class="flex-shrink-0 h-10 w-10">
-            @if($user->profile_image)
-                <img class="h-10 w-10 rounded-full object-cover" src="{{ $user->profile_image_url }}" alt="{{ $user->name }}">
-            @else
-                <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
-                    <i class="fas fa-user"></i>
-                </div>
-            @endif
-        </div>
-        <div class="ml-4">
-            <div class="text-sm font-medium text-gray-900">{{ $user->name }}</div>
-            <div class="text-xs text-gray-500">Inscrit le {{ $user->created_at->format('d/m/Y') }}</div>
-        </div>
+<!-- resources/views/users/index.blade.php -->
+@extends('layouts.app')
+
+@section('title', 'Liste des utilisateurs')
+
+@section('header', 'Gestion des utilisateurs')
+
+@section('content')
+    <div class="mb-6">
+        @if(auth()->id() === 1 || !auth()->user()->hasRole('admin'))
+            <a href="{{ route('users.create') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus mr-1"></i> Nouvel utilisateur
+            </a>
+        @endif
     </div>
-</td>
+    
+    <div class="overflow-x-auto bg-white rounded-lg shadow overflow-y-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($users as $user)
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    @if($user->profile_image)
+                                        <img class="h-10 w-10 rounded-full object-cover" src="{{ $user->profile_image_url }}" alt="{{ $user->name }}">
+                                    @else
+                                        <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ $user->name }}</div>
+                                    <div class="text-xs text-gray-500">Inscrit le {{ $user->created_at->format('d/m/Y') }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ $user->email }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @foreach($user->roles as $role)
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $role->name === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
+                                    {{ $role->name }}
+                                </span>
+                            @endforeach
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $user->is_active ? 'Actif' : 'Bloqué' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex justify-end space-x-2">
+                                {{-- Voir le profil - tous les admins peuvent voir les profils --}}
+                                <a href="{{ route('users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900" title="Voir">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                {{-- Modifier - uniquement pour l'admin principal ou si l'utilisateur n'est pas un admin --}}
+                                @if(auth()->id() === 1 || (auth()->user()->hasRole('admin') && !$user->hasRole('admin') && $user->id !== 1))
+                                    <a href="{{ route('users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endif
+                                
+                                {{-- Bloquer/Débloquer - seulement pour l'admin principal ou pour les utilisateurs non-admin --}}
+                                @if((auth()->id() === 1 && $user->id !== 1) || (auth()->user()->hasRole('admin') && !$user->hasRole('admin') && $user->id !== 1))
+                                    <form action="{{ route('users.toggleActive', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="{{ $user->is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $user->is_active ? 'Bloquer' : 'Débloquer' }}" onclick="return confirm('Êtes-vous sûr de vouloir {{ $user->is_active ? 'bloquer' : 'débloquer' }} cet utilisateur ?')">
+                                            <i class="fas {{ $user->is_active ? 'fa-lock' : 'fa-unlock' }}"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                                
+                                {{-- Supprimer - uniquement pour l'admin principal et pas sur lui-même --}}
+                                @if(auth()->id() === 1 && $user->id !== auth()->id())
+                                    <form action="{{ route('users.destroy', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-900" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            Aucun utilisateur trouvé
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+@endsection
 ```
 
 ## 3. Amélioration de la mise en page des boutons d'action
@@ -1748,65 +1791,117 @@ Nous réorganisons les actions avec un espacement approprié et ajoutons des inf
 #### Code à remplacer dans `resources/views/users/index.blade.php` (section concernant les actions) :
 
 ```php
-<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-    <a href="{{ route('users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900 mr-2">
-        <i class="fas fa-eye"></i>
-    </a>
-    <a href="{{ route('users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900 mr-2">
-        <i class="fas fa-edit"></i>
-    </a>
-    
-    <form action="{{ route('users.toggleActive', $user) }}" method="POST" class="inline mr-2">
-        @csrf
-        @method('PATCH')
-        <button type="submit" class="{{ $user->is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $user->is_active ? 'Bloquer' : 'Débloquer' }}" onclick="return confirm('Êtes-vous sûr de vouloir {{ $user->is_active ? 'bloquer' : 'débloquer' }} cet utilisateur ?')">
-            <i class="fas {{ $user->is_active ? 'fa-lock' : 'fa-unlock' }}"></i>
-        </button>
-    </form>
-    
-    @if($user->id !== auth()->id())
-        <form action="{{ route('users.destroy', $user) }}" method="POST" class="inline">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
-                <i class="fas fa-trash"></i>
-            </button>
-        </form>
-    @endif
-</td>
-```
+<!-- resources/views/users/index.blade.php -->
+@extends('layouts.app')
 
-#### Nouveau code :
+@section('title', 'Liste des utilisateurs')
 
-```php
-<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-    <div class="flex justify-end space-x-2">
-        <a href="{{ route('users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900" title="Voir">
-            <i class="fas fa-eye"></i>
-        </a>
-        <a href="{{ route('users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900" title="Modifier">
-            <i class="fas fa-edit"></i>
-        </a>
-        
-        <form action="{{ route('users.toggleActive', $user) }}" method="POST" class="inline">
-            @csrf
-            @method('PATCH')
-            <button type="submit" class="{{ $user->is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $user->is_active ? 'Bloquer' : 'Débloquer' }}" onclick="return confirm('Êtes-vous sûr de vouloir {{ $user->is_active ? 'bloquer' : 'débloquer' }} cet utilisateur ?')">
-                <i class="fas {{ $user->is_active ? 'fa-lock' : 'fa-unlock' }}"></i>
-            </button>
-        </form>
-        
-        @if($user->id !== auth()->id())
-            <form action="{{ route('users.destroy', $user) }}" method="POST" class="inline">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="text-red-600 hover:text-red-900" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </form>
+@section('header', 'Gestion des utilisateurs')
+
+@section('content')
+    <div class="mb-6">
+        @if(auth()->id() === 1 || !auth()->user()->hasRole('admin'))
+            <a href="{{ route('users.create') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus mr-1"></i> Nouvel utilisateur
+            </a>
         @endif
     </div>
-</td>
+    
+    <div class="overflow-x-auto bg-white rounded-lg shadow overflow-y-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                @forelse($users as $user)
+                    <tr>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    @if($user->profile_image)
+                                        <img class="h-10 w-10 rounded-full object-cover" src="{{ $user->profile_image_url }}" alt="{{ $user->name }}">
+                                    @else
+                                        <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ $user->name }}</div>
+                                    <div class="text-xs text-gray-500">Inscrit le {{ $user->created_at->format('d/m/Y') }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ $user->email }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @foreach($user->roles as $role)
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $role->name === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800' }}">
+                                    {{ $role->name }}
+                                </span>
+                            @endforeach
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $user->is_active ? 'Actif' : 'Bloqué' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex justify-end space-x-2">
+                                {{-- Voir le profil - tous les admins peuvent voir les profils --}}
+                                <a href="{{ route('users.show', $user) }}" class="text-indigo-600 hover:text-indigo-900" title="Voir">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                {{-- Modifier - uniquement pour l'admin principal ou si l'utilisateur n'est pas un admin --}}
+                                @if(auth()->id() === 1 || (auth()->user()->hasRole('admin') && !$user->hasRole('admin') && $user->id !== 1))
+                                    <a href="{{ route('users.edit', $user) }}" class="text-yellow-600 hover:text-yellow-900" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endif
+                                
+                                {{-- Bloquer/Débloquer - seulement pour l'admin principal ou pour les utilisateurs non-admin --}}
+                                @if((auth()->id() === 1 && $user->id !== 1) || (auth()->user()->hasRole('admin') && !$user->hasRole('admin') && $user->id !== 1))
+                                    <form action="{{ route('users.toggleActive', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="{{ $user->is_active ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $user->is_active ? 'Bloquer' : 'Débloquer' }}" onclick="return confirm('Êtes-vous sûr de vouloir {{ $user->is_active ? 'bloquer' : 'débloquer' }} cet utilisateur ?')">
+                                            <i class="fas {{ $user->is_active ? 'fa-lock' : 'fa-unlock' }}"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                                
+                                {{-- Supprimer - uniquement pour l'admin principal et pas sur lui-même --}}
+                                @if(auth()->id() === 1 && $user->id !== auth()->id())
+                                    <form action="{{ route('users.destroy', $user) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-900" title="Supprimer" onclick="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                            Aucun utilisateur trouvé
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+@endsection
 ```
 
 ## 4. Simplification de la vue des détails utilisateur
@@ -2107,8 +2202,8 @@ Avant de considérer l'application prête, effectuez les tests manuels suivants 
    - Supprimer un utilisateur
 
 2. **Accès aux données**
-   - Vérifier que l'administrateur peut voir les données de tous les utilisateurs
-   - Vérifier que l'administrateur peut modifier les données de tous les utilisateurs
+   - Vérifier que l'administrateur peut voir uniquement ses données 
+   - Vérifier que l'administrateur peut modifier les données de tous les utilisateurs en fonction de nos restrictions
 
 ---
 
