@@ -17,8 +17,11 @@
 
 ### PARTIE 2: CONCEPTS AVANCÉS
 - [DTO (Data Transfer Objects)](#dto-data-transfer-objects)
+- [ Form Requests dans Laravel](#form-requests-dans-laravel)
 - [API Resources dans Laravel](#api-resources-dans-laravel)
 - [Controllers API vs Controllers Web](#controllers-api-vs-controllers-web)
+- [Comparaison entre Form Requests, DTOs et Resources ](#-comparaison-entre-form-requests-dtos-et-resources)
+- [Flux de données complet dans une requête API](#flux-de-données-complet-dans-une-requête-api)
 - [Gestion d'erreurs et exceptions](#gestion-derreurs-et-exceptions)
 - [Pagination](#pagination)
 - [Filtrage et tri](#filtrage-et-tri)
@@ -27,6 +30,7 @@
 - [Configuration initiale de l'API](#configuration-initiale-de-lapi)
 - [Création des API Resources](#création-des-api-resources)
 - [Création des DTOs](#création-des-dtos)
+- [Création des Form Request](#implémentation-des-form-requests-pour-lapi)
 - [Implémentation des contrôleurs d'API](#implémentation-des-contrôleurs-dapi)
 - [Routes API](#routes-api)
 - [Exemples d'utilisation](#exemples-dutilisation)
@@ -450,6 +454,103 @@ class UserController extends Controller
     }
 }
 ```
+## 📝 Form Requests dans Laravel
+
+Les Form Requests sont des classes dédiées qui encapsulent la logique de validation et d'autorisation pour une action spécifique. Ils constituent un élément clé de l'architecture API Laravel.
+
+### 🔹 Qu'est-ce qu'un Form Request ?
+
+Un **Form Request** est une extension de la classe `Request` standard qui permet de :
+- Centraliser les règles de validation
+- Personnaliser les messages d'erreur
+- Effectuer des vérifications d'autorisation préliminaires
+- Transformer automatiquement les erreurs en réponses JSON adaptées aux API
+
+### 🔹 Avantages des Form Requests
+
+1. **Séparation des préoccupations** : La logique de validation est extraite des contrôleurs
+2. **Réutilisabilité** : Les mêmes Form Requests peuvent être utilisés dans différents contextes
+3. **Lisibilité** : Les contrôleurs deviennent plus concis et plus faciles à comprendre
+4. **Maintenabilité** : Les règles de validation sont centralisées et faciles à modifier
+5. **Format standardisé** : Les erreurs sont présentées de manière cohérente à travers l'API
+
+### 🔹 Structure d'un Form Request dans Laravel
+
+```php
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class StoreUserRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true; // L'autorisation peut aussi être gérée ici
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:8|confirmed',
+        ];
+    }
+    
+    /**
+     * Get the error messages for the defined validation rules.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom est obligatoire',
+            'email.unique' => 'Cette adresse email est déjà utilisée',
+            // ...
+        ];
+    }
+    
+    /**
+     * Handle a failed validation attempt.
+     *
+     * @throws \Illuminate\Http\Exceptions\HttpResponseException
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Erreur de validation',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+### 🔹 Utilisation dans un contrôleur API
+
+```php
+/**
+ * Store a newly created resource in storage.
+ */
+public function store(StoreUserRequest $request)
+{
+    // Les données sont déjà validées ici
+    $user = User::create($request->validated());
+    
+    return new UserResource($user);
+}
+```
+
+### 🔹 Form Requests vs Middleware
+
+Les Form Requests peuvent sembler similaires aux middleware, mais ils sont spécifiques à une seule route et contiennent toute la logique de validation pour cette route. Les middleware, en revanche, sont exécutés avant le contrôleur et peuvent être appliqués à plusieurs routes.
 
 ## API Resources dans Laravel
 
@@ -686,6 +787,37 @@ class UserApiController extends Controller
 5. **Validation stricte** : Utiliser des Form Requests pour la validation
 6. **Gestion d'erreurs explicite** : Renvoyer des messages d'erreur clairs
 7. **Contrôle des ressources incluses** : Permettre au client de spécifier quelles relations charger
+
+
+## 📊 Comparaison entre Form Requests, DTOs et Resources
+
+| Aspect | Form Request | DTO | Resource |
+|--------|-------------|-----|----------|
+| **Direction des données** | Entrante | Bidirectionnelle | Sortante |
+| **Moment d'intervention** | Début du cycle | Milieu du cycle | Fin du cycle |
+| **Objectif principal** | Validation | Transfert | Présentation |
+| **Gère les erreurs** | Oui | Non | Non |
+| **Mise en forme** | Non | Parfois | Oui |
+| **Lien avec HTTP** | Fort | Aucun | Fort |
+| **Usage spécifique à l'API** | Non (mais adaptable) | Non | Oui |
+| **Type de classe** | Stateful | Immutable | Transformateur |
+
+
+
+
+### 🔹 Flux de données complet dans une requête API
+
+1. **Requête HTTP** arrive au contrôleur  
+2. **Form Request** valide les données entrantes
+3. **DTO** encapsule les données validées 
+4. **Logique métier** traite les données via le DTO
+5. **Modèle** est mis à jour ou créé
+6. **Resource** transforme le modèle en réponse JSON
+7. **Réponse HTTP** est envoyée au client
+
+
+
+
 
 ## Gestion d'erreurs et exceptions
 
@@ -994,6 +1126,7 @@ touch app/Http/Controllers/Api/V1/ExpenseApiController.php
 touch app/Http/Controllers/Api/V1/IncomeApiController.php
 touch app/Http/Controllers/Api/V1/CategoryApiController.php
 touch app/Http/Controllers/Api/V1/AuthApiController.php
+touch app/Http/Controllers/Api/V1/ProfileApiController.php
 
 # Création des Form Requests pour l'API
 touch app/Http/Requests/Api/StoreUserRequest.php
@@ -1004,6 +1137,10 @@ touch app/Http/Requests/Api/StoreIncomeRequest.php
 touch app/Http/Requests/Api/UpdateIncomeRequest.php
 touch app/Http/Requests/Api/StoreCategoryRequest.php
 touch app/Http/Requests/Api/UpdateCategoryRequest.php
+touch app/Http/Requests/Api/LoginRequest.php
+touch app/Http/Requests/Api/RegisterRequest.php
+touch app/Http/Requests/Api/ProfileUpdateRequest.php
+touch app/Http/Requests/Api/ProfileImageUpdateRequest.php
 ```
 
 Cette structure de fichiers suit les bonnes pratiques Laravel pour le développement d'API :
@@ -1047,6 +1184,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->prefix('v1')->group(functio
 
 - `auth:sanctum` : Authentification avec Laravel Sanctum
 - `throttle:api` : Limitation de débit pour éviter les abus
+
+
 
 ## 🛠️ Création des API Resources
 
@@ -1208,10 +1347,7 @@ class CategoryResource extends JsonResource
 
 Maintenant, créons les DTOs pour nos modèles. Ces objets serviront d'intermédiaires pour transférer les données entre les couches de notre application.
 
-### 🔹 Dossier pour les DTOs
 
-```bash
-mkdir -p app/DTOs
 ```
 
 ### 🔹 UserDTO
@@ -1446,6 +1582,841 @@ class CategoryDTO
 }
 ```
 
+### 🔹 ProfileDTO
+```php
+    <?php
+
+namespace App\DTOs;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+
+class ProfileDTO
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly string $email,
+        public readonly ?string $password = null
+    ) {
+    }
+
+    public static function fromRequest(Request $request): self
+    {
+        return new self(
+            name: $request->validated('name', $request->user()->name),
+            email: $request->validated('email', $request->user()->email),
+            password: $request->validated('password') ? Hash::make($request->validated('password')) : null
+        );
+    }
+
+    public static function fromModel(User $user): self
+    {
+        return new self(
+            name: $user->name,
+            email: $user->email
+        );
+    }
+
+    public function toArray(): array
+    {
+        $data = [
+            'name' => $this->name,
+            'email' => $this->email,
+        ];
+        
+        if ($this->password) {
+            $data['password'] = $this->password;
+        }
+        
+        return $data;
+    }
+}
+```
+
+## 🛠️ Implémentation des Form Requests pour l'API
+
+Avant de continuer avec la création des contrôleurs, nous allons implémenter tous nos Form Requests. Ces classes vont gérer la validation des données pour chaque action de notre API, ce qui permettra de garder nos contrôleurs propres et simples.
+
+### 🔹 Form Requests pour la gestion des utilisateurs
+
+#### 1. StoreUserRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class StoreUserRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true; // L'autorisation détaillée est gérée dans le contrôleur via les policies
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'sometimes|string|exists:roles,name',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom est obligatoire',
+            'email.required' => 'L\'adresse email est obligatoire',
+            'email.email' => 'L\'adresse email doit être valide',
+            'email.unique' => 'Cette adresse email est déjà utilisée',
+            'password.required' => 'Le mot de passe est obligatoire',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas',
+            'role.exists' => 'Le rôle sélectionné n\'existe pas',
+            'profile_image.image' => 'Le fichier doit être une image',
+            'profile_image.mimes' => 'Le fichier doit être au format: jpeg, png, jpg ou gif',
+            'profile_image.max' => 'L\'image ne doit pas dépasser 2Mo',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+#### 2. UpdateUserRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
+
+class UpdateUserRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'sometimes|required|string|max:255',
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                Rule::unique('users')->ignore($this->user->id),
+            ],
+            'password' => 'sometimes|nullable|string|min:8|confirmed',
+            'role' => 'sometimes|string|exists:roles,name',
+            'profile_image' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'is_active' => 'sometimes|boolean',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom est obligatoire',
+            'email.required' => 'L\'adresse email est obligatoire',
+            'email.email' => 'L\'adresse email doit être valide',
+            'email.unique' => 'Cette adresse email est déjà utilisée',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas',
+            'role.exists' => 'Le rôle sélectionné n\'existe pas',
+            'profile_image.image' => 'Le fichier doit être une image',
+            'profile_image.mimes' => 'Le fichier doit être au format: jpeg, png, jpg ou gif',
+            'profile_image.max' => 'L\'image ne doit pas dépasser 2Mo',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+### 🔹 Form Requests pour la gestion des dépenses
+
+#### 1. StoreExpenseRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class StoreExpenseRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'amount' => 'required|numeric|min:0',
+            'description' => 'required|string|max:255',
+            'date' => 'required|date',
+            'category_id' => 'required|exists:categories,id',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'amount.required' => 'Le montant est obligatoire',
+            'amount.numeric' => 'Le montant doit être un nombre',
+            'amount.min' => 'Le montant doit être positif',
+            'description.required' => 'La description est obligatoire',
+            'description.max' => 'La description ne doit pas dépasser 255 caractères',
+            'date.required' => 'La date est obligatoire',
+            'date.date' => 'Le format de date est invalide',
+            'category_id.required' => 'La catégorie est obligatoire',
+            'category_id.exists' => 'La catégorie sélectionnée n\'existe pas',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+#### 2. UpdateExpenseRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class UpdateExpenseRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'amount' => 'sometimes|required|numeric|min:0',
+            'description' => 'sometimes|required|string|max:255',
+            'date' => 'sometimes|required|date',
+            'category_id' => 'sometimes|required|exists:categories,id',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'amount.required' => 'Le montant est obligatoire',
+            'amount.numeric' => 'Le montant doit être un nombre',
+            'amount.min' => 'Le montant doit être positif',
+            'description.required' => 'La description est obligatoire',
+            'description.max' => 'La description ne doit pas dépasser 255 caractères',
+            'date.required' => 'La date est obligatoire',
+            'date.date' => 'Le format de date est invalide',
+            'category_id.required' => 'La catégorie est obligatoire',
+            'category_id.exists' => 'La catégorie sélectionnée n\'existe pas',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+### 🔹 Form Requests pour la gestion des revenus
+
+#### 1. StoreIncomeRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class StoreIncomeRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'amount' => 'required|numeric|min:0',
+            'description' => 'required|string|max:255',
+            'date' => 'required|date',
+            'category_id' => 'required|exists:categories,id',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'amount.required' => 'Le montant est obligatoire',
+            'amount.numeric' => 'Le montant doit être un nombre',
+            'amount.min' => 'Le montant doit être positif',
+            'description.required' => 'La description est obligatoire',
+            'description.max' => 'La description ne doit pas dépasser 255 caractères',
+            'date.required' => 'La date est obligatoire',
+            'date.date' => 'Le format de date est invalide',
+            'category_id.required' => 'La catégorie est obligatoire',
+            'category_id.exists' => 'La catégorie sélectionnée n\'existe pas',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+#### 2. UpdateIncomeRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class UpdateIncomeRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'amount' => 'sometimes|required|numeric|min:0',
+            'description' => 'sometimes|required|string|max:255',
+            'date' => 'sometimes|required|date',
+            'category_id' => 'sometimes|required|exists:categories,id',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'amount.required' => 'Le montant est obligatoire',
+            'amount.numeric' => 'Le montant doit être un nombre',
+            'amount.min' => 'Le montant doit être positif',
+            'description.required' => 'La description est obligatoire',
+            'description.max' => 'La description ne doit pas dépasser 255 caractères',
+            'date.required' => 'La date est obligatoire',
+            'date.date' => 'Le format de date est invalide',
+            'category_id.required' => 'La catégorie est obligatoire',
+            'category_id.exists' => 'La catégorie sélectionnée n\'existe pas',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+### 🔹 Form Requests pour la gestion des catégories
+
+#### 1. StoreCategoryRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class StoreCategoryRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255|unique:categories,name,NULL,id,user_id,' . auth()->id(),
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom de la catégorie est obligatoire',
+            'name.max' => 'Le nom de la catégorie ne doit pas dépasser 255 caractères',
+            'name.unique' => 'Vous avez déjà une catégorie avec ce nom',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+#### 2. UpdateCategoryRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
+
+class UpdateCategoryRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories')
+                    ->where('user_id', auth()->id())
+                    ->ignore($this->category->id)
+            ],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom de la catégorie est obligatoire',
+            'name.max' => 'Le nom de la catégorie ne doit pas dépasser 255 caractères',
+            'name.unique' => 'Vous avez déjà une catégorie avec ce nom',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+### 🔹 Form Request pour l'authentification
+
+#### 1. LoginRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class LoginRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'email' => 'required|string|email',
+            'password' => 'required|string',
+            'device_name' => 'nullable|string',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'L\'adresse email est obligatoire',
+            'email.email' => 'L\'adresse email doit être valide',
+            'password.required' => 'Le mot de passe est obligatoire',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+#### 2. RegisterRequest
+
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class RegisterRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'device_name' => 'nullable|string',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom est obligatoire',
+            'email.required' => 'L\'adresse email est obligatoire',
+            'email.email' => 'L\'adresse email doit être valide',
+            'email.unique' => 'Cette adresse email est déjà utilisée',
+            'password.required' => 'Le mot de passe est obligatoire',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+
+### 🔹 Form Requests pour la gestion des dépenses
+
+#### 1. ProfileUpdateRequest
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rule;
+
+class ProfileUpdateRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true; // L'utilisateur peut toujours modifier son propre profil
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => 'sometimes|required|string|max:255',
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users')->ignore($this->user()->id),
+            ],
+            'password' => 'sometimes|nullable|string|min:8|confirmed',
+            'current_password' => 'required_with:password|current_password',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Le nom est obligatoire',
+            'email.required' => 'L\'adresse email est obligatoire',
+            'email.email' => 'L\'adresse email doit être valide',
+            'email.unique' => 'Cette adresse email est déjà utilisée',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas',
+            'current_password.required_with' => 'Le mot de passe actuel est requis pour changer de mot de passe',
+            'current_password.current_password' => 'Le mot de passe actuel est incorrect',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
+#### 2. ProfileImageUpdateRequest
+```php
+<?php
+
+namespace App\Http\Requests\Api;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+
+class ProfileImageUpdateRequest extends FormRequest
+{
+    /**
+     * Determine if the user is authorized to make this request.
+     */
+    public function authorize(): bool
+    {
+        return true; // L'utilisateur peut toujours modifier sa propre image de profil
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     */
+    public function rules(): array
+    {
+        return [
+            'profile_image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     */
+    public function messages(): array
+    {
+        return [
+            'profile_image.required' => 'L\'image de profil est obligatoire',
+            'profile_image.image' => 'Le fichier doit être une image',
+            'profile_image.mimes' => 'Le fichier doit être au format: jpeg, png, jpg ou gif',
+            'profile_image.max' => 'L\'image ne doit pas dépasser 2Mo',
+        ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'message' => 'Validation error',
+            'errors' => $validator->errors()
+        ], 422));
+    }
+}
+```
 # 🌐 Implémentation des contrôleurs d'API
 
 Maintenant que nous avons créé nos DTOs et nos API Resources, nous allons implémenter les contrôleurs d'API qui utiliseront ces composants. Ces contrôleurs utiliseront aussi les politiques d'autorisation que nous avons mises en place précédemment.
@@ -1461,16 +2432,19 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\UserDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreUserRequest;
-use App\Http\Requests\UpdateUserRequest;
+use App\Http\Requests\Api\StoreUserRequest ;
+use App\Http\Requests\Api\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Spatie\Permission\Models\Role;
-
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;  
 class UserApiController extends Controller
 {
+
+    use AuthorizesRequests;
+
     /**
      * Display a listing of the resource.
      */
@@ -1648,17 +2622,20 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\ExpenseDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreExpenseRequest;
-use App\Http\Requests\UpdateExpenseRequest;
+use App\Http\Requests\Api\StoreExpenseRequest;
+use App\Http\Requests\Api\UpdateExpenseRequest;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Category;
 use App\Models\Expense;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;   
 
 class ExpenseApiController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display a listing of the resource.
      */
@@ -1774,44 +2751,43 @@ class ExpenseApiController extends Controller
         
         return new ExpenseResource($expense);
     }
-
     /**
-     * Update the specified resource in storage.
-     */
-    public function update(UpdateExpenseRequest $request, Expense $expense)
-    {
-        // Autoriser l'action
-        $this->authorize('update', $expense);
-        
-        // Créer un DTO à partir de la requête validée
-        $expenseDTO = ExpenseDTO::fromRequest($request, $expense->user_id);
-        
-        // Vérifier que la catégorie appartient à l'utilisateur
-        $category = Category::findOrFail($expenseDTO->category_id);
-        if ($category->user_id !== $expense->user_id && !auth()->user()->hasRole('admin')) {
-            return response()->json([
-                'message' => 'The category does not belong to you'
-            ], Response::HTTP_FORBIDDEN);
-        }
-        
-        // Mettre à jour la dépense
-        $expense->update($expenseDTO->toArray());
-        
-        return new ExpenseResource($expense);
+ * Update the specified resource in storage.
+ */
+public function update(UpdateExpenseRequest $request, Expense $expense)
+{
+    // Autoriser l'action
+    $this->authorize('update', $expense);
+    
+    // Créer un DTO à partir de la requête validée
+    $expenseDTO = ExpenseDTO::fromRequest($request, $expense->user_id);
+    
+    // Vérifier que la catégorie appartient à l'utilisateur
+    $category = Category::findOrFail($expenseDTO->category_id);
+    if ($category->user_id !== $expense->user_id && !auth()->user()->hasRole('admin')) {
+        return response()->json([
+            'message' => 'The category does not belong to you'
+        ], Response::HTTP_FORBIDDEN);
     }
+    
+    // Mettre à jour la dépense
+    $expense->update($expenseDTO->toArray());
+    
+    return new ExpenseResource($expense);
+}
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Expense $expense)
-    {
-        // Autoriser l'action
-        $this->authorize('delete', $expense);
-        
-        $expense->delete();
-        
-        return response()->json(null, Response::HTTP_NO_CONTENT);
-    }
+/**
+ * Remove the specified resource from storage.
+ */
+public function destroy(Expense $expense)
+{
+    // Autoriser l'action
+    $this->authorize('delete', $expense);
+    
+    $expense->delete();
+    
+    return response()->json(null, Response::HTTP_NO_CONTENT);
+}
 }
 ```
 
@@ -1826,17 +2802,20 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\IncomeDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreIncomeRequest;
-use App\Http\Requests\UpdateIncomeRequest;
+use App\Http\Requests\Api\V1\StoreIncomeRequest;
+use App\Http\Requestss\Api\V1\UpdateIncomeRequest;
 use App\Http\Resources\IncomeResource;
 use App\Models\Category;
 use App\Models\Income;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests; 
 
 class IncomeApiController extends Controller
-{
+{   
+    use AuthorizesRequests;
+    
     /**
      * Display a listing of the resource.
      */
@@ -1906,11 +2885,6 @@ class IncomeApiController extends Controller
         return IncomeResource::collection($incomes);
     }
 
-    # 🌐 Implémentation des contrôleurs d'API (Suite)
-
-## 🔹 IncomeApiController (Suite)
-
-```php
     /**
      * Store a newly created resource in storage.
      */
@@ -2009,8 +2983,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\DTOs\CategoryDTO;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCategoryRequest;
-use App\Http\Requests\UpdateCategoryRequest;
+use App\Http\Requests\Api\StoreCategoryRequest;
+use App\Http\Requests\Api\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Http\Request;
@@ -2110,12 +3084,6 @@ class CategoryApiController extends Controller
         if ($request->has('include_counts')) {
             $category->loadCount(['expenses', 'incomes']);
 
-
-            # 🌐 Implémentation des contrôleurs d'API (Suite)
-
-## 🔹 CategoryApiController (Suite)
-
-```php
         }
         
         return new CategoryResource($category);
@@ -2159,6 +3127,145 @@ class CategoryApiController extends Controller
     }
 }
 ```
+## 🔹 ProfileApiController
+```php
+<?php
+
+namespace App\Http\Controllers\Api\V1;
+
+use App\DTOs\ProfileDTO;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\ProfileUpdateRequest;
+use App\Http\Requests\Api\ProfileImageUpdateRequest;
+use App\Http\Resources\UserResource;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
+
+class ProfileApiController extends Controller
+{
+    /**
+     * Get the authenticated user's profile.
+     */
+    public function show(Request $request)
+    {
+        return new UserResource($request->user());
+    }
+    
+    /**
+     * Update the user's profile information.
+     */
+    public function update(ProfileUpdateRequest $request)
+    {
+        $user = $request->user();
+        
+        // Création du DTO à partir de la requête validée
+        $profileDTO = ProfileDTO::fromRequest($request);
+        
+        // Vérifier si l'email est modifié
+        if ($user->email !== $profileDTO->email) {
+            $user->email_verified_at = null;
+        }
+        
+        // Mise à jour des informations
+        $user->update($profileDTO->toArray());
+        
+        return new UserResource($user);
+    }
+    
+    /**
+     * Update the user's profile image.
+     */
+    public function updateImage(ProfileImageUpdateRequest $request)
+    {
+        $user = $request->user();
+        
+        // Supprimer l'ancienne image si elle existe
+        if ($user->profile_image) {
+            Storage::disk('public')->delete('profiles/' . $user->profile_image);
+        }
+        
+        // Télécharger la nouvelle image
+        $imageName = time() . '_' . $user->id . '.' . $request->profile_image->extension();
+        $request->profile_image->storeAs('profiles', $imageName, 'public');
+        
+        // Mettre à jour l'utilisateur
+        $user->profile_image = $imageName;
+        $user->save();
+        
+        return new UserResource($user);
+    }
+    
+    /**
+     * Delete the user's account.
+     */
+    public function destroy(Request $request)
+    {
+        $request->validate([
+            'password' => ['required', 'current_password'],
+        ]);
+        
+        $user = $request->user();
+        
+        // Supprimer l'image de profil si elle existe
+        if ($user->profile_image) {
+            Storage::disk('public')->delete('profiles/' . $user->profile_image);
+        }
+        
+        // Révoquer tous les tokens
+        $user->tokens()->delete();
+        
+        // Supprimer l'utilisateur
+        $user->delete();
+        
+        return response()->json([
+            'message' => 'Account successfully deleted'
+        ]);
+    }
+}
+```
+
+## 📋 Récapitulatif de l'architecture API complète
+
+Avec l'ajout des Form Requests, notre architecture API est maintenant complète et suit les meilleures pratiques Laravel:
+
+1. **Form Requests** - Première couche:
+   - Valident les données entrantes
+   - Formatent les erreurs de validation pour l'API
+   - Effectuent des vérifications d'autorisation préliminaires
+
+2. **DTOs** - Deuxième couche:
+   - Encapsulent les données validées
+   - Fournissent une structure explicite pour le transfert des données
+   - Découplent la validation des données de la logique métier
+
+3. **Policies** - Troisième couche:
+   - Gèrent les autorisations basées sur les modèles
+   - Centralisent la logique d'autorisation
+
+4. **Contrôleurs** - Quatrième couche:
+   - Orchestrent le flux de données
+   - Utilisent les DTOs pour interagir avec les modèles
+   - Appliquent la logique métier spécifique
+
+5. **Resources** - Cinquième couche:
+   - Transforment les modèles en réponses JSON
+   - Contrôlent les données exposées à l'API
+   - Gèrent les inclusions de relations
+
+Cette architecture en couches offre de nombreux avantages:
+
+- **Séparation des préoccupations** - Chaque composant a une responsabilité unique
+- **Code plus propre** - Les contrôleurs restent légers et lisibles
+- **Maintenance facilitée** - Les modifications sont isolées à la couche concernée
+- **Testabilité** - Chaque couche peut être testée indépendamment
+- **Évolutivité** - L'API peut évoluer sans impact sur la logique métier
+
+En suivant cette architecture, nous avons créé une API robuste, maintenable et sécurisée pour notre application de gestion de dépenses.
+
+
+
 
 ## 📡 Routes API
 
@@ -2171,6 +3278,7 @@ use App\Http\Controllers\Api\V1\CategoryApiController;
 use App\Http\Controllers\Api\V1\ExpenseApiController;
 use App\Http\Controllers\Api\V1\IncomeApiController;
 use App\Http\Controllers\Api\V1\UserApiController;
+use App\Http\Controllers\Api\V1\ProfileApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -2204,7 +3312,16 @@ Route::prefix('v1')->middleware(['auth:sanctum'])->group(function () {
     
     // Routes pour les catégories
     Route::apiResource('categories', CategoryApiController::class);
+
+    // Routes pour le profil
+    Route::get('profile', [ProfileApiController::class, 'show'])->name('api.profile.show');
+    Route::put('profile', [ProfileApiController::class, 'update'])->name('api.profile.update');
+    Route::post('profile/image', [ProfileApiController::class, 'updateImage'])->name('api.profile.update-image');
+    Route::delete('profile', [ProfileApiController::class, 'destroy'])->name('api.profile.destroy');
+
 });
+
+
 ```
 
 ## 🔑 Authentification avec Sanctum
