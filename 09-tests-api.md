@@ -268,65 +268,142 @@ Nous allons maintenant tester chacun de ces endpoints de manière systématique.
 3. Vérifiez que la réponse contient un token et les informations de l'utilisateur
 4. Vérifiez que l'utilisateur a bien le rôle "user"
 
-**Scripts Postman pour automatiser la validation :**
-```javascript
-pm.test("Status code is 201", function () {
-    pm.response.to.have.status(201);
-});
+# 🧪 Tests de l'API avec Postman
 
-pm.test("Response contains token", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.token).to.exist;
-    pm.expect(jsonData.token.length).to.be.greaterThan(20);
-    
-    // Stockage du token pour les futures requêtes
-    pm.environment.set("token", jsonData.token);
-});
+### 🔹 Bugs rencontrés et résolutions
 
-pm.test("User has correct data", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.user).to.exist;
-    pm.expect(jsonData.user.name).to.eql("Test User");
-    pm.expect(jsonData.user.email).to.eql("testuser@example.com");
-    pm.expect(jsonData.user.is_active).to.be.true;
-});
+**Bug #1: Internal Server Error**
+```json
+{
+  "message": "Internal Server Error",
+  "exception": "BadMethodCallException",
+  "file": "...",
+  "line": 67,
+  "trace": "Call to undefined method App\\Models\\User::createToken()"
+}
 ```
 
-### 🔹 Bugs potentiels et résolutions
+**Explication :** La méthode createToken() n'est pas définie dans le modèle User.
 
-**Bug potentiel #1 : Échec de validation d'email unique**  
-- **Symptôme** :# 🧪 Tests de l'API avec Postman
+**Solution :**
+La méthode `createToken()` est fournie par le trait `Laravel\Sanctum\HasApiTokens` qui doit être ajouté à votre modèle User. L'erreur survient car votre modèle User n'a pas ce trait intégré.
 
-### 🔹 Bugs potentiels et résolutions
+1. **Installer Sanctum**
+```bash
+composer require laravel/sanctum
+```
 
-**Bug potentiel #1 : Échec de validation d'email unique**  
-- **Symptôme** : Erreur 422 avec message "The email has already been taken"
-- **Résolution** : Utilisez un email unique pour chaque test ou supprimez l'utilisateur de test avant de relancer
+2. **Publier la configuration Sanctum**
+```bash
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+```
 
-**Bug potentiel #2 : Problème avec la confirmation de mot de passe**  
-- **Symptôme** : Erreur 422 avec message "The password confirmation does not match"
-- **Résolution** : Assurez-vous que les champs `password` et `password_confirmation` ont des valeurs identiques
+3. **Terminer la configuration en exécutant une migration**
+```bash
+php artisan migrate
+```
+
+4. **Ouvrir le fichier app/Models/User.php**
+
+5. **Ajouter l'import du trait au début du fichier (avec les autres imports) :**
+```php
+use Laravel\Sanctum\HasApiTokens;
+```
+
+6. **Ajouter le trait `HasApiTokens` à la liste des traits utilisés par la classe User :**
+```php
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable, HasRoles, HasApiTokens;
+    // ... reste du code ...
+}
+```
+
+7. **Mettre à jour le cache et les configurations Laravel**
+```bash
+composer dump-autoload
+php artisan config:clear
+php artisan cache:clear
+```
+
+**Bug #2 : Réponse HTML au lieu de JSON**
+
+**Symptôme :** Réception d'une vue HTML avec le code 200 OK au lieu de 201 Created avec JSON
+
+**Explication :** Ce comportement est inhabituel pour une API qui devrait renvoyer des données JSON. Le fait que vous receviez une réponse HTML avec un code 200 OK au lieu d'une réponse JSON avec un code 201 Created indique que votre requête est traitée par une route web plutôt que par une route API.
+
+**Solution :**
+Ajoutez l'en-tête `Accept: application/json` dans les `headers` de votre requête Postman.
+
+**Bug #3 : Table personal_access_tokens manquante**
+
+**Symptôme :**
+```json
+{
+  "message": "SQLSTATE[HY000]: General error: 1 no such table: personal_access_tokens",
+  "exception": "Illuminate\\Database\\QueryException"
+}
+```
+
+**Explication :** La table `personal_access_tokens` n'existe pas dans votre base de données, mais elle est nécessaire pour Sanctum.
+
+**Solution :**
+1. Vérifiez que vous avez bien publié les migrations de Sanctum :
+```bash
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+```
+
+2. Exécutez les migrations pour créer la table :
+```bash
+php artisan migrate
+```
+
+
+### 🔹 Autres bugs potentiels et résolutions
+
+#### **Bug potentiel #1 : Échec de validation d'email unique**
+
+**Symptôme :** Erreur 422 avec message "The email has already been taken"
+
+**Explication :** Vous essayez d'enregistrer un utilisateur avec une adresse email déjà présente dans la base de données.
+
+**Solution :** Utilisez un email unique pour chaque test ou supprimez l'utilisateur de test avant de relancer.
+
+#### **Bug potentiel #2 : Problème avec la confirmation de mot de passe**
+
+**Symptôme :** Erreur 422 avec message "The password confirmation does not match"
+
+**Explication :** Les champs de mot de passe ne correspondent pas.
+
+**Solution :** Assurez-vous que les champs `password` et `password_confirmation` ont des valeurs identiques.
+
+#### **Bug potentiel #3 : Erreur de route introuvable**
+
+**Symptôme :** Erreur 404 Not Found
+
+**Explication :** L'endpoint API que vous essayez d'atteindre n'existe pas ou n'est pas correctement configuré.
+
+**Solution :** Vérifiez les routes API définies dans `routes/api.php` et assurez-vous que l'URL est correcte. Utilisez `php artisan route:list` pour voir toutes les routes disponibles.
 
 ## Test de la connexion (Login)
 
 ### 🔹 Configuration du test
-
 **Méthode :** POST  
 **URL :** `{{base_url}}/v1/login`  
 **Headers :**
 - Content-Type: application/json
+- Accept: application/json
 
 **Body (JSON) :**
 ```json
 {
-    "email": "{{admin_email}}",
-    "password": "{{admin_password}}",
-    "device_name": "PostmanTest"
+  "email": "admin@example.com",
+  "password": "password",
+  "device_name": "PostmanTest"
 }
 ```
 
 ### 🔹 Test et validation
-
 **Ce que nous testons :**
 - La connexion d'un utilisateur existant
 - La réception d'un token d'authentification
@@ -338,37 +415,14 @@ pm.test("User has correct data", function () {
 3. Vérifiez que la réponse contient un token et les informations de l'utilisateur
 4. Stockez le token pour les futures requêtes
 
-**Scripts Postman pour automatiser la validation :**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Response contains token", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.token).to.exist;
-    pm.expect(jsonData.token.length).to.be.greaterThan(20);
-    
-    // Stockage du token pour les futures requêtes
-    pm.environment.set("token", jsonData.token);
-});
-
-pm.test("User has admin role", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.user).to.exist;
-    pm.expect(jsonData.user.roles).to.include("admin");
-});
-```
-
 ### 🔹 Bugs potentiels et résolutions
+**Bug potentiel #1 : Identifiants incorrects**
+- **Symptôme :** Erreur 422 avec message "The provided credentials are incorrect"
+- **Résolution :** Vérifiez que les variables d'environnement pour email et mot de passe sont correctes
 
-**Bug potentiel #1 : Identifiants incorrects**  
-- **Symptôme** : Erreur 422 avec message "The provided credentials are incorrect"
-- **Résolution** : Vérifiez que les variables d'environnement pour email et mot de passe sont correctes
-
-**Bug potentiel #2 : Utilisateur inactif**  
-- **Symptôme** : Erreur 403 avec message sur la désactivation du compte
-- **Résolution** : Assurez-vous que l'utilisateur est actif dans la base de données
+**Bug potentiel #2 : Utilisateur inactif**
+- **Symptôme :** Erreur 403 avec message sur la désactivation du compte
+- **Résolution :** Assurez-vous que l'utilisateur est actif dans la base de données
 
 ## Test de la déconnexion (Logout)
 
@@ -394,21 +448,6 @@ pm.test("User has admin role", function () {
 3. Vérifiez que le code de statut est `200 OK`
 4. Vérifiez que la réponse contient un message de succès
 
-**Scripts Postman pour automatiser la validation :**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
-
-pm.test("Logout successful message", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData.message).to.exist;
-    pm.expect(jsonData.message).to.include("Successfully logged out");
-});
-
-// Suppression du token de l'environnement (optionnel)
-// pm.environment.unset("token");
-```
 
 ### 🔹 Bugs potentiels et résolutions
 
@@ -441,19 +480,7 @@ pm.test("Logout successful message", function () {
 3. Vérifiez que le code de statut est `200 OK`
 4. Vérifiez que les données de l'utilisateur sont correctes
 
-**Scripts Postman pour automatiser la validation :**
-```javascript
-pm.test("Status code is 200", function () {
-    pm.response.to.have.status(200);
-});
 
-pm.test("User data is present", function () {
-    var jsonData = pm.response.json();
-    pm.expect(jsonData).to.have.property('id');
-    pm.expect(jsonData).to.have.property('name');
-    pm.expect(jsonData).to.have.property('email');
-});
-```
 
 ### 🔹 Bugs potentiels et résolutions
 

@@ -136,8 +136,6 @@ Pour une expérience d'apprentissage optimale, suivez les étapes dans l'ordre p
 
 7. [Création des contrôleurs d'API](08-controllers-api.md)
 8. [Tests avec Postman](09-tests-api.md)
-9. [Sécurisation de l'API avec JWT](10-auth-jwt.md)
-10. [Tests finaux avec Postman](11-tests-final.md)
 
 ## ❓ Dépannage courant
 
